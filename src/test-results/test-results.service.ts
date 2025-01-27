@@ -11,7 +11,7 @@ interface TestResult {
 
 @Injectable()
 export class TestResultsService {
-  private testResults: TestResult[] = []; // Explicitly define the type of testResults
+  private testResults: TestResult[] = [];
 
   create(dto: CreateTestResultDto): TestResult {
     const newResult: TestResult = {

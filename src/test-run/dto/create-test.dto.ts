@@ -1,6 +1,9 @@
-import { IsString, IsIn, IsNumber } from 'class-validator';
+import { IsOptional, IsString, IsIn, IsNumber } from 'class-validator';
 
 export class CreateTestDto {
+  @IsOptional()
+  id?: number; // Optional ID for updates
+
   @IsString()
   name: string;
 

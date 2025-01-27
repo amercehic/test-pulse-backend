@@ -1,68 +1,79 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { TestRun } from './test-run.entity';
-import { Test } from './test.entity';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateTestRunDto } from './dto/create-test-run.dto';
 import { UpdateTestRunDto } from './dto/update-test-run.dto';
 import { TestRunQueryDto } from './dto/test-run-query.dto';
 
 @Injectable()
 export class TestRunService {
-  constructor(
-    @InjectRepository(TestRun) private readonly testRunRepository: Repository<TestRun>,
-    @InjectRepository(Test) private readonly testRepository: Repository<Test>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async create(createTestRunDto: CreateTestRunDto): Promise<TestRun> {
+  async create(createTestRunDto: CreateTestRunDto): Promise<any> {
     const { tests, ...testRunData } = createTestRunDto;
-    const testRun = this.testRunRepository.create(testRunData);
 
-    if (tests && tests.length > 0) {
-      testRun.tests = tests.map((test) => this.testRepository.create(test));
-    }
+    return this.prisma.testRun.create({
+      data: {
+        ...testRunData,
+        tests: tests?.length
+          ? {
+              create: await Promise.all(
+                tests.map(async (test) => {
+                  const previousTest = await this.prisma.test.findFirst({
+                    where: { name: test.name },
+                    orderBy: { id: 'desc' },
+                  });
 
-    return this.testRunRepository.save(testRun);
+                  return {
+                    ...test,
+                    previousRunId: previousTest?.id || null,
+                  };
+                }),
+              ),
+            }
+          : undefined,
+      },
+      include: { tests: true },
+    });
   }
 
-  async findAll(query?: TestRunQueryDto): Promise<{ data: TestRun[]; total: number }> {
+  async findAll(query: TestRunQueryDto): Promise<{ data: any[]; total: number }> {
     const {
       status,
       framework,
       browser,
       platform,
       sortBy = 'createdAt',
-      order = 'DESC',
+      order = 'desc',
       page = 1,
       limit = 10,
     } = query || {};
 
-    const offset = (page - 1) * limit;
+    const skip = (page - 1) * limit;
 
-    const qb = this.testRunRepository.createQueryBuilder('testRun');
+    const where: any = {};
+    if (status) where.status = status;
+    if (framework) where.framework = framework;
+    if (browser) where.browser = browser;
+    if (platform) where.platform = platform;
 
-    // Filtering
-    if (status) qb.andWhere('testRun.status = :status', { status });
-    if (framework) qb.andWhere('testRun.framework = :framework', { framework });
-    if (browser) qb.andWhere('testRun.browser = :browser', { browser });
-    if (platform) qb.andWhere('testRun.platform = :platform', { platform });
-
-    // Sorting
-    qb.orderBy(`testRun.${sortBy}`, order);
-
-    // Pagination
-    qb.skip(offset).take(limit);
-
-    // Execute query
-    const [data, total] = await qb.getManyAndCount();
+    const [data, total] = await Promise.all([
+      this.prisma.testRun.findMany({
+        where,
+        orderBy: { [sortBy]: order },
+        skip,
+        take: limit,
+        include: { tests: true },
+      }),
+      this.prisma.testRun.count({ where }),
+    ]);
 
     return { data, total };
   }
 
-  async findOne(id: number): Promise<TestRun> {
-    const testRun = await this.testRunRepository.findOne({
+  async findOne(id: number): Promise<any> {
+    const testRun = await this.prisma.testRun.findUnique({
       where: { id },
-      relations: ['tests'],
+      include: { tests: { include: { previousRun: true } } },
     });
 
     if (!testRun) {
@@ -72,23 +83,43 @@ export class TestRunService {
     return testRun;
   }
 
-  async update(id: number, updateTestRunDto: UpdateTestRunDto): Promise<TestRun> {
-    const testRun = await this.testRunRepository.preload({
-      id,
-      ...updateTestRunDto,
-    });
-
-    if (!testRun) {
-      throw new NotFoundException(`TestRun with ID ${id} not found`);
+  async update(id: number, updateTestRunDto: UpdateTestRunDto): Promise<any> {
+    const { tests, ...testRunData } = updateTestRunDto;
+  
+    if (tests) {
+      await Promise.all(
+        tests.map(async (test) => {
+          if (test.id) {
+            // Update existing test
+            await this.prisma.test.update({
+              where: { id: test.id },
+              data: { ...test },
+            });
+          } else {
+            // Create new test
+            await this.prisma.test.create({
+              data: {
+                ...test,
+                testRunId: id,
+              },
+            });
+          }
+        }),
+      );
     }
-
-    return this.testRunRepository.save(testRun);
-  }
+  
+    return this.prisma.testRun.update({
+      where: { id },
+      data: testRunData,
+    });
+  }  
 
   async remove(id: number): Promise<void> {
-    const result = await this.testRunRepository.delete(id);
-
-    if (result.affected === 0) {
+    try {
+      await this.prisma.testRun.delete({
+        where: { id },
+      });
+    } catch (error) {
       throw new NotFoundException(`TestRun with ID ${id} not found`);
     }
   }

@@ -16,6 +16,11 @@
       "experimentalDecorators": true,
       "emitDecoratorMetadata": true
     },
-    "exclude": ["node_modules", "dist", "test"]
+    "exclude": ["node_modules", "dist", "test"],
+    "include": [
+      "src/**/*.ts",
+      "src/**/*.d.ts",
+      "src/prisma/**/*.ts"
+    ]
   }
   
