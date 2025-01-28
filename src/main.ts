@@ -17,6 +17,6 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document); // Swagger UI at /api/docs
 
   await app.listen(3000);
-  console.log(`Application is running on: http://localhost:3000/api/docs`); // needs to be updated to use URL dynamically 
+  console.log(`Application is running on: http://localhost:3000/api/docs`); // needs to be updated to use URL dynamically
 }
 bootstrap();

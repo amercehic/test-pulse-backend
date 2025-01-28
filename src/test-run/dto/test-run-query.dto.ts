@@ -65,7 +65,8 @@ export class TestRunQueryDto {
   page?: number;
 
   @ApiPropertyOptional({
-    description: 'Number of items per page for pagination. Must be a positive integer.',
+    description:
+      'Number of items per page for pagination. Must be a positive integer.',
     example: 20,
     minimum: 1,
   })

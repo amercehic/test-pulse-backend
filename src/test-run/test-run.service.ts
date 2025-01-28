@@ -42,7 +42,9 @@ export class TestRunService {
     }
   }
 
-  async findAll(query: TestRunQueryDto): Promise<{ data: any[]; total: number }> {
+  async findAll(
+    query: TestRunQueryDto,
+  ): Promise<{ data: any[]; total: number }> {
     const {
       status,
       framework,
@@ -147,7 +149,11 @@ export class TestRunService {
         where: { id },
       });
     } catch (error: unknown) {
-      if (error instanceof Object && 'code' in error && (error as any).code === 'P2025') {
+      if (
+        error instanceof Object &&
+        'code' in error &&
+        (error as any).code === 'P2025'
+      ) {
         throw new NotFoundException(`TestRun with ID ${id} not found`);
       }
       if (error instanceof Error) {
