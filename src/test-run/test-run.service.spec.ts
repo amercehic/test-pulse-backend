@@ -121,8 +121,20 @@ describe('TestRunService', () => {
         id: 2,
         ...createDto,
         tests: [
-          { name: 'Test 1', status: 'passed', duration: 10, logs: '', previousRunId: 10 },
-          { name: 'Test 2', status: 'failed', duration: 10, logs: '', previousRunId: null },
+          {
+            name: 'Test 1',
+            status: 'passed',
+            duration: 10,
+            logs: '',
+            previousRunId: 10,
+          },
+          {
+            name: 'Test 2',
+            status: 'failed',
+            duration: 10,
+            logs: '',
+            previousRunId: null,
+          },
         ],
       };
 
@@ -386,7 +398,13 @@ describe('TestRunService', () => {
         browserVersion: '88.0',
         platform: 'Linux',
         tests: [
-          { id: 101, name: 'Test 1 Updated', status: 'passed', duration: 10, logs: '' },
+          {
+            id: 101,
+            name: 'Test 1 Updated',
+            status: 'passed',
+            duration: 10,
+            logs: '',
+          },
           { name: 'Test 3', status: 'failed', duration: 10, logs: '' },
         ],
       };
@@ -472,7 +490,9 @@ describe('TestRunService', () => {
 
       prisma.testRun.update.mockRejectedValue(new Error('Database error'));
 
-      await expect(service.update(id, updateDto)).rejects.toThrow('Database error');
+      await expect(service.update(id, updateDto)).rejects.toThrow(
+        'Database error',
+      );
 
       expect(prisma.testRun.update).toHaveBeenCalledWith({
         where: { id },
@@ -510,7 +530,9 @@ describe('TestRunService', () => {
 
       prisma.testRun.delete.mockRejectedValue({ code: 'P2025' });
 
-      await expect(service.remove(id)).rejects.toThrow(`TestRun with ID ${id} not found`);
+      await expect(service.remove(id)).rejects.toThrow(
+        `TestRun with ID ${id} not found`,
+      );
       expect(prisma.testRun.delete).toHaveBeenCalledWith({
         where: { id },
       });

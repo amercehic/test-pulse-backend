@@ -7,7 +7,10 @@ export class CreateTestRunDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ description: 'Triggered by (e.g., CI/CD)', example: 'CI/CD Pipeline' })
+  @ApiProperty({
+    description: 'Triggered by (e.g., CI/CD)',
+    example: 'CI/CD Pipeline',
+  })
   @IsString()
   triggeredBy: string;
 
@@ -15,7 +18,10 @@ export class CreateTestRunDto {
   @IsIn(['passed', 'failed'])
   status: 'passed' | 'failed';
 
-  @ApiProperty({ description: 'Total duration of the test run in seconds', example: 120 })
+  @ApiProperty({
+    description: 'Total duration of the test run in seconds',
+    example: 120,
+  })
   @IsNumber()
   duration: number;
 
@@ -27,11 +33,17 @@ export class CreateTestRunDto {
   @IsString()
   branch: string;
 
-  @ApiProperty({ description: 'Framework used for the test run', example: 'Playwright' })
+  @ApiProperty({
+    description: 'Framework used for the test run',
+    example: 'Playwright',
+  })
   @IsString()
   framework: string;
 
-  @ApiProperty({ description: 'Browser used for the test run', example: 'Chrome' })
+  @ApiProperty({
+    description: 'Browser used for the test run',
+    example: 'Chrome',
+  })
   @IsString()
   browser: string;
 
@@ -39,11 +51,17 @@ export class CreateTestRunDto {
   @IsString()
   browserVersion: string;
 
-  @ApiProperty({ description: 'Platform used for the test run', example: 'Windows' })
+  @ApiProperty({
+    description: 'Platform used for the test run',
+    example: 'Windows',
+  })
   @IsString()
   platform: string;
 
-  @ApiProperty({ description: 'List of individual tests in the test run', type: [CreateTestDto] })
+  @ApiProperty({
+    description: 'List of individual tests in the test run',
+    type: [CreateTestDto],
+  })
   @IsOptional()
   tests?: CreateTestDto[];
 }
