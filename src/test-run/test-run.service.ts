@@ -43,32 +43,35 @@ export class TestRunService {
       browser,
       platform,
       sortBy = 'createdAt',
-      order = 'desc',
+      order = 'desc', // Default to 'desc'
       page = 1,
       limit = 10,
     } = query || {};
-
-    const skip = (page - 1) * limit;
-
+  
+    const skip = (Number(page) - 1) * Number(limit); // Ensure skip is a number
+    const take = Number(limit); // Ensure take is a number
+  
     const where: any = {};
     if (status) where.status = status;
     if (framework) where.framework = framework;
     if (browser) where.browser = browser;
     if (platform) where.platform = platform;
-
+  
     const [data, total] = await Promise.all([
       this.prisma.testRun.findMany({
         where,
-        orderBy: { [sortBy]: order },
+        orderBy: {
+          [sortBy]: order.toLowerCase() as 'asc' | 'desc',
+        },
         skip,
-        take: limit,
+        take, // Pass take as a number
         include: { tests: true },
       }),
       this.prisma.testRun.count({ where }),
     ]);
-
+  
     return { data, total };
-  }
+  }  
 
   async findOne(id: number): Promise<any> {
     const testRun = await this.prisma.testRun.findUnique({

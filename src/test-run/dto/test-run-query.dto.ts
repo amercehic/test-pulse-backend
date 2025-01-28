@@ -45,13 +45,13 @@ export class TestRunQueryDto {
   sortBy?: string; // e.g., 'createdAt'
 
   @ApiPropertyOptional({
-    description: 'Order of sorting. Can be either "ASC" or "DESC".',
-    enum: ['ASC', 'DESC'],
-    example: 'DESC',
+    description: 'Order of sorting. Can be either "asc" or "desc".',
+    enum: ['asc', 'desc'],
+    example: 'desc',
   })
   @IsOptional()
-  @IsIn(['ASC', 'DESC'])
-  order?: 'ASC' | 'DESC';
+  @IsIn(['asc', 'desc'])
+  order?: 'asc' | 'desc'; // Lowercase to align with Prisma
 
   @ApiPropertyOptional({
     description: 'Page number for pagination. Must be a positive integer.',

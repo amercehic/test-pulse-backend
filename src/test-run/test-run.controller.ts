@@ -35,7 +35,7 @@ export class TestRunController {
   @ApiOperation({ summary: 'Get a test run by ID', description: 'Retrieve a specific test run by its ID' })
   @ApiParam({ name: 'id', description: 'ID of the test run', example: 1 }) // Describe the parameter
   findOne(@Param('id') id: number) {
-    return this.testRunService.findOne(id);
+    return this.testRunService.findOne(Number(id));
   }
 
   @Patch(':id')
@@ -50,6 +50,6 @@ export class TestRunController {
   @ApiOperation({ summary: 'Delete a test run', description: 'Delete a specific test run by its ID' })
   @ApiParam({ name: 'id', description: 'ID of the test run to delete', example: 1 })
   remove(@Param('id') id: number) {
-    return this.testRunService.remove(id);
+    return this.testRunService.remove(Number(id));
   }
 }
