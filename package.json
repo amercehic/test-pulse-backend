@@ -16,7 +16,7 @@
     "format:check": "prettier --check 'src/**/*.{ts,js,json}'"
   },
   "dependencies": {
-    "@nestjs/common": "^10.0.0",
+    "@nestjs/common": "^11.0.6",
     "@nestjs/config": "^4.0.0",
     "@nestjs/core": "^10.0.0",
     "@nestjs/mapped-types": "^2.1.0",

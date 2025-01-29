@@ -13,7 +13,7 @@ model TestRun {
   updatedAt      DateTime @updatedAt
   name           String
   triggeredBy    String
-  status         String // 'passed' | 'failed'
+  status         String
   duration       Float
   commit         String
   branch         String
@@ -27,20 +27,84 @@ model TestRun {
 model Test {
   id            Int     @id @default(autoincrement())
   name          String
-  status        String // 'passed' | 'failed'
+  status        String
   duration      Float
   logs          String
   testRunId     Int
-  testRun       TestRun @relation(fields: [testRunId], references: [id], onDelete: Cascade)
-  previousRun   Test?   @relation("PreviousRun", fields: [previousRunId], references: [id])
   previousRunId Int?
-  nextRun       Test[]  @relation("PreviousRun") // Opposite relation field
+  previousRun   Test?   @relation("PreviousRun", fields: [previousRunId], references: [id])
+  nextRun       Test[]  @relation("PreviousRun")
+  testRun       TestRun @relation(fields: [testRunId], references: [id], onDelete: Cascade)
 }
 
 model TestHistory {
-  id       Int      @id @default(autoincrement())
+  id       Int    @id @default(autoincrement())
   name     String
-  status   String   // 'passed' | 'failed'
+  status   String
   duration Float
   logs     String
+}
+
+model Organization {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]   @relation("OrganizationUsers")
+}
+
+model User {
+  id             Int              @id @default(autoincrement())
+  email          String           @unique
+  password       String // Hashed password
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  roles          UserRole[]       @relation("UserToRoles") // User can have multiple roles
+  permissions    UserPermission[] @relation("UserToPermissions") // Direct permissions assigned to the user
+  organizationId Int
+  organization   Organization     @relation("OrganizationUsers", fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique
+  description String?
+  permissions RolePermission[] @relation("RoleToPermissions") // Permissions associated with this role
+  users       UserRole[]       @relation("UserToRoles")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  name        String           @unique // e.g., "view:test-run"
+  description String?
+  roles       RolePermission[] @relation("RoleToPermissions")
+  users       UserPermission[] @relation("UserToPermissions")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now())
+}
+
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  role         Role       @relation("RoleToPermissions", fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation("RoleToPermissions", fields: [permissionId], references: [id], onDelete: Cascade)
+}
+
+model UserRole {
+  id     Int  @id @default(autoincrement())
+  userId Int
+  roleId Int
+  user   User @relation("UserToRoles", fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation("UserToRoles", fields: [roleId], references: [id], onDelete: Cascade)
+}
+
+model UserPermission {
+  id           Int        @id @default(autoincrement())
+  userId       Int
+  permissionId Int
+  user         User       @relation("UserToPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation("UserToPermissions", fields: [permissionId], references: [id], onDelete: Cascade)
 }
