@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config'; // Import ConfigModule
-import { TestRunModule } from './test-run/test-run.module';
-import { PrismaService } from './prisma/prisma.service';
+import { PrismaService } from '@db/prisma.service';
+import { TestRunModule } from '@/test-run/test-run.module';
 
 @Module({
   imports: [

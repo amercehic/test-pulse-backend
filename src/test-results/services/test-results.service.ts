@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateTestResultDto } from './dto/create-test-result.dto';
+import { CreateTestResultDto } from '@/test-results/dto/create-test-result.dto';
 
 interface TestResult {
   id: number;

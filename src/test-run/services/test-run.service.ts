@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateTestRunDto } from './dto/create-test-run.dto';
-import { TestRunQueryDto } from './dto/test-run-query.dto';
-import { UpdateTestRunDto } from './dto/update-test-run.dto';
+import { PrismaService } from '@db/prisma.service';
+import { CreateTestRunDto } from '@/test-run/dto/create-test-run.dto';
+import { TestRunQueryDto } from '@/test-run/dto/test-run-query.dto';
+import { UpdateTestRunDto } from '@/test-run/dto/update-test-run.dto';
 
 @Injectable()
 export class TestRunService {

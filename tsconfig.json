@@ -1,26 +1,31 @@
 {
-    "compilerOptions": {
-      "module": "CommonJS",
-      "target": "ES2021",
-      "lib": ["ES2021", "DOM"],
-      "moduleResolution": "node",
-      "outDir": "./dist",
-      "rootDir": "./src",
-      "strict": true,
-      "noImplicitAny": true,
-      "esModuleInterop": true,
-      "resolveJsonModule": true,
-      "skipLibCheck": true,
-      "strictPropertyInitialization": false,
-      "sourceMap": true,
-      "experimentalDecorators": true,
-      "emitDecoratorMetadata": true
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ES2021",
+    "lib": ["ES2021", "DOM"],
+    "moduleResolution": "node",
+    "outDir": "./dist/src", // Adjusted to nest compiled files
+    "rootDir": ".",
+    "baseUrl": "./src", // Required for absolute imports
+    "paths": {
+      "@/*": ["*"],
+      // Change this to avoid collision with npm's @prisma/client
+      "@db/*": ["../prisma/*"]
     },
-    "exclude": ["node_modules", "dist", "test"],
-    "include": [
-      "src/**/*.ts",
-      "src/**/*.d.ts",
-      "src/prisma/**/*.ts"
-    ]
-  }
-  
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strictPropertyInitialization": false,
+    "sourceMap": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "exclude": ["node_modules", "dist", "test"],
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.d.ts",
+    "prisma/**/*.ts"
+  ]
+}

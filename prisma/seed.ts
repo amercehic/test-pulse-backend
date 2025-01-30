@@ -1,9 +1,9 @@
 import { Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import seedPermissions from './seeds/permissions.seed';
-import seedRoles from './seeds/roles.seed';
-import seedOrganizations from './seeds/organizations.seed';
-import seedUsers from './seeds/users.seed';
+import seedOrganizations from '@db/seeds/organizations.seed';
+import seedPermissions from '@db/seeds/permissions.seed';
+import seedRoles from '@db/seeds/roles.seed';
+import seedUsers from '@db/seeds/users.seed';
 
 const prisma = new PrismaClient();
 const logger = new Logger('Seed');
