@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,14 +15,18 @@ import {
   ApiParam,
   ApiQuery,
   ApiBody,
-} from '@nestjs/swagger'; // Swagger annotations
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CreateTestRunDto } from '@/test-run/dto/create-test-run.dto';
 import { TestRunQueryDto } from '@/test-run/dto/test-run-query.dto';
 import { UpdateTestRunDto } from '@/test-run/dto/update-test-run.dto';
 import { TestRunService } from '@/test-run/services/test-run.service';
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 
 @ApiTags('Test Runs') // Group endpoints under "Test Runs"
+@ApiBearerAuth() // ✅ Add Swagger Authorization header
 @Controller('test-runs')
+@UseGuards(JwtAuthGuard) // ✅ Protect all routes with JWT authentication
 export class TestRunController {
   constructor(private readonly testRunService: TestRunService) {}
 
