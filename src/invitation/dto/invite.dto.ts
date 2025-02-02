@@ -14,5 +14,5 @@ export class InviteUserDto {
     description: 'ID of the role assigned to the user upon accepting',
   })
   @IsInt()
-  roleId: number;
+  roleId: string;
 }

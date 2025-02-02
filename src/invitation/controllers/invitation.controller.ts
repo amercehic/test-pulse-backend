@@ -42,7 +42,7 @@ export class InvitationController {
     description: 'User already exists or has a pending invite',
   })
   async inviteUser(@Body() inviteUserDto: InviteUserDto, @Req() req: Request) {
-    const adminId = (req.user as { userId: number }).userId;
+    const adminId = (req.user as { userId: string }).userId; // Changed from number to string
     return this.invitationService.inviteUser(inviteUserDto, adminId);
   }
 
@@ -96,7 +96,7 @@ export class InvitationController {
   @ApiResponse({ status: 404, description: 'Invitation not found' })
   async updateInvitation(
     @Param('token') token: string,
-    @Query('roleId') roleId: number,
+    @Query('roleId') roleId: string, // Changed from number to string
   ) {
     return this.invitationService.updateInvitation(token, roleId);
   }

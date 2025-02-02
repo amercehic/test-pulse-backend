@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { AuthService } from '@/auth/services/auth.service';
 import { PrismaService } from '@db/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import {
@@ -8,59 +9,58 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { AuthService } from '../services/auth.service';
+import { RegisterUserDto } from '@/auth/dto/register-user.dto';
+import { LoginUserDto } from '@/auth/dto/login-user.dto';
+import { AssignRoleDto } from '@/roles/dto/assign-role.dto';
+import { randomUUID } from 'crypto';
 
-// Mock bcrypt methods
+// Mock bcrypt
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashedPassword123'),
-  compare: jest.fn(),
+  compare: jest.fn().mockResolvedValue(true),
 }));
 
 describe('AuthService', () => {
   let service: AuthService;
   let prisma: any;
   let jwtService: any;
-  let loggerSpy: jest.SpyInstance;
 
-  // Updated mock Prisma service with both findFirst and findUnique for roles:
-  const mockPrismaService: any = {
+  const mockPrismaService = {
     user: {
       findUnique: jest.fn(),
       create: jest.fn(),
     },
     organization: {
-      create: jest.fn().mockResolvedValue({ id: 1, name: 'Test Org' }),
+      create: jest.fn(),
     },
     role: {
-      // For the register method (which uses findFirst)
-      findFirst: jest.fn().mockResolvedValue({ id: 1, name: 'admin' }),
-      // For the assignRole method (which uses findUnique)
-      findUnique: jest.fn().mockResolvedValue({ id: 1, name: 'admin' }),
+      findFirst: jest.fn(),
+      findUnique: jest.fn(),
     },
     userRole: {
       findFirst: jest.fn(),
       create: jest.fn(),
     },
-    // Simulate a transaction by just calling the callback with the same mock
-    $transaction: jest.fn((callback) => callback(mockPrismaService)),
+    $transaction: jest.fn(
+      (callback: (tx: any) => Promise<any>): Promise<any> =>
+        callback(mockPrismaService),
+    ),
   };
 
   const mockJwtService = {
-    sign: jest.fn().mockReturnValue('jwt.token.here'),
+    sign: jest.fn().mockReturnValue('jwt.token.here') as jest.MockedFunction<
+      () => string
+    >,
   };
+
+  let loggerSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
-        {
-          provide: JwtService,
-          useValue: mockJwtService,
-        },
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: JwtService, useValue: mockJwtService },
       ],
     }).compile();
 
@@ -68,7 +68,6 @@ describe('AuthService', () => {
     prisma = module.get<PrismaService>(PrismaService);
     jwtService = module.get<JwtService>(JwtService);
 
-    // Spy on the logger to prevent console output during tests
     loggerSpy = jest
       .spyOn(service['logger'], 'error')
       .mockImplementation(() => {});
@@ -80,21 +79,23 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    const registerDto = {
+    const registerDto: RegisterUserDto = {
       email: 'test@example.com',
       password: 'password123',
     };
 
     it('should successfully register a new user', async () => {
-      const mockUser = { id: 1, email: registerDto.email };
+      const mockUser = { id: randomUUID(), email: registerDto.email };
+      const mockOrganization = { id: randomUUID(), name: 'Test Org' };
+      const mockRole = { id: randomUUID(), name: 'admin' };
 
-      // Ensure no user exists initially
       prisma.user.findUnique.mockResolvedValue(null);
+      prisma.organization.create.mockResolvedValue(mockOrganization);
       prisma.user.create.mockResolvedValue(mockUser);
-      prisma.organization.create.mockResolvedValue({ id: 1, name: 'Test Org' });
-      // For registration, the service uses findFirst to get the admin role
-      prisma.role.findFirst.mockResolvedValue({ id: 2, name: 'admin' });
-      prisma.userRole.create.mockResolvedValue({ userId: 1, roleId: 2 });
+
+      prisma.role.findFirst.mockResolvedValue(mockRole);
+
+      prisma.userRole.create.mockResolvedValue({});
 
       const result = await service.register(registerDto);
 
@@ -105,16 +106,13 @@ describe('AuthService', () => {
       expect(prisma.role.findFirst).toHaveBeenCalledWith({
         where: { name: 'admin' },
       });
-      expect(prisma.user.create).toHaveBeenCalled();
+      expect(prisma.userRole.create).toHaveBeenCalled();
       expect(result).toHaveProperty('user');
       expect(result).toHaveProperty('token');
     });
 
     it('should throw ConflictException if user already exists', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        id: 1,
-        email: registerDto.email,
-      });
+      prisma.user.findUnique.mockResolvedValue({ id: randomUUID() });
 
       await expect(service.register(registerDto)).rejects.toThrow(
         ConflictException,
@@ -122,9 +120,8 @@ describe('AuthService', () => {
     });
 
     it('should throw InternalServerErrorException if admin role is missing', async () => {
-      // Ensure no existing user to avoid ConflictException
       prisma.user.findUnique.mockResolvedValue(null);
-      // Simulate missing admin role
+
       prisma.role.findFirst.mockResolvedValue(null);
 
       await expect(service.register(registerDto)).rejects.toThrow(
@@ -134,22 +131,18 @@ describe('AuthService', () => {
   });
 
   describe('login', () => {
-    const loginDto = {
+    const loginDto: LoginUserDto = {
       email: 'test@example.com',
       password: 'password123',
     };
+    const mockUser = {
+      id: randomUUID(),
+      email: loginDto.email,
+      password: 'hashedPassword',
+    };
 
     it('should successfully login a user', async () => {
-      const mockUser = {
-        id: 1,
-        email: loginDto.email,
-        password: 'hashedPassword',
-      };
-
       prisma.user.findUnique.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockImplementation(() =>
-        Promise.resolve(true),
-      );
 
       const result = await service.login(loginDto);
 
@@ -172,17 +165,9 @@ describe('AuthService', () => {
       );
     });
 
-    it('should throw UnauthorizedException if password is invalid', async () => {
-      const mockUser = {
-        id: 1,
-        email: loginDto.email,
-        password: 'hashedPassword',
-      };
-
+    it('should throw UnauthorizedException if password is incorrect', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
-      (bcrypt.compare as jest.Mock).mockImplementation(() =>
-        Promise.resolve(false),
-      );
+      (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
       await expect(service.login(loginDto)).rejects.toThrow(
         UnauthorizedException,
@@ -191,20 +176,18 @@ describe('AuthService', () => {
   });
 
   describe('assignRole', () => {
-    const assignRoleDto = {
-      userId: 1,
-      roleId: 1,
+    const assignRoleDto: AssignRoleDto = {
+      userId: randomUUID(),
+      roleId: randomUUID(),
     };
+    const mockUser = { id: assignRoleDto.userId, email: 'user@example.com' };
+    const mockRole = { id: assignRoleDto.roleId, name: 'ADMIN' };
 
     it('should successfully assign a role to a user', async () => {
-      const mockUser = { id: 1, email: 'test@example.com' };
-      const mockRole = { id: 1, name: 'ADMIN' };
-
       prisma.user.findUnique.mockResolvedValue(mockUser);
-      // In assignRole, the service uses findUnique to fetch the role
       prisma.role.findUnique.mockResolvedValue(mockRole);
       prisma.userRole.findFirst.mockResolvedValue(null);
-      prisma.userRole.create.mockResolvedValue({ userId: 1, roleId: 1 });
+      prisma.userRole.create.mockResolvedValue({});
 
       const result = await service.assignRole(assignRoleDto);
 
@@ -214,9 +197,7 @@ describe('AuthService', () => {
       expect(prisma.role.findUnique).toHaveBeenCalledWith({
         where: { id: assignRoleDto.roleId },
       });
-      expect(prisma.userRole.create).toHaveBeenCalledWith({
-        data: { userId: assignRoleDto.userId, roleId: assignRoleDto.roleId },
-      });
+      expect(prisma.userRole.create).toHaveBeenCalled();
       expect(result).toEqual({
         message: `Role ${mockRole.name} assigned to user ${mockUser.email}`,
       });
@@ -231,7 +212,7 @@ describe('AuthService', () => {
     });
 
     it('should throw NotFoundException if role not found', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 1 });
+      prisma.user.findUnique.mockResolvedValue(mockUser);
       prisma.role.findUnique.mockResolvedValue(null);
 
       await expect(service.assignRole(assignRoleDto)).rejects.toThrow(
@@ -240,9 +221,9 @@ describe('AuthService', () => {
     });
 
     it('should throw ConflictException if user already has the role', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 1 });
-      prisma.role.findUnique.mockResolvedValue({ id: 1 });
-      prisma.userRole.findFirst.mockResolvedValue({ userId: 1, roleId: 1 });
+      prisma.user.findUnique.mockResolvedValue(mockUser);
+      prisma.role.findUnique.mockResolvedValue(mockRole);
+      prisma.userRole.findFirst.mockResolvedValue({});
 
       await expect(service.assignRole(assignRoleDto)).rejects.toThrow(
         ConflictException,

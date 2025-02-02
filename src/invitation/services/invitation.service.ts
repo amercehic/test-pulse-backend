@@ -11,89 +11,92 @@ import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
 
 /**
- * Service for handling user invitations.
+ * Service handling user invitations within organizations
  */
 @Injectable()
 export class InvitationService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Sends an invitation to a user via email, allowing them to join an organization with a specified role.
-   * @param inviteUserDto - DTO containing email, organizationId, and roleId.
-   * @returns A success message and the generated invitation token.
-   * @throws ConflictException if the user already exists or has a pending invite.
+   * Creates a new invitation for a user to join an organization
+   * @param inviteUserDto - The invitation details including email and roleId
+   * @param adminId - The ID of the admin creating the invitation
+   * @returns Object containing success message and invitation token
+   * @throws UnauthorizedException if admin doesn't belong to an organization
+   * @throws ConflictException if user already exists or has pending invite
    */
-  async inviteUser(inviteUserDto: InviteUserDto, adminId: number) {
+  async inviteUser(inviteUserDto: InviteUserDto, adminId: string) {
     const { email, roleId } = inviteUserDto;
 
-    // 🔹 Retrieve the admin's organization
+    // Check if admin exists and has organization
     const admin = await this.prisma.user.findUnique({
       where: { id: adminId },
-      select: { organizationId: true },
     });
 
-    if (!admin || !admin.organizationId) {
+    if (!admin?.organizationId) {
       throw new UnauthorizedException(
         'Admin does not belong to any organization.',
       );
     }
 
-    // 🔹 Check if user already exists
+    // Check if user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
+
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
 
-    // 🔹 Check if an active invite exists
-    const existingInvite = await this.prisma.invitation.findFirst({
-      where: { email, organizationId: admin.organizationId, status: 'pending' },
-    });
-    if (existingInvite) {
-      throw new ConflictException('User already has a pending invite');
-    }
-
-    // 🔹 Generate a unique invite token
-    const token = randomUUID();
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // Invite expires in 7 days
-
-    // 🔹 Store invite in database
-    await this.prisma.invitation.create({
-      data: {
+    // Check for pending invitations
+    const pendingInvite = await this.prisma.invitation.findFirst({
+      where: {
         email,
-        organizationId: admin.organizationId, // ✅ Auto-assign organization
-        roleId,
-        token,
-        expiresAt,
+        status: 'pending',
+        expiresAt: {
+          gt: new Date(),
+        },
       },
     });
 
-    // 🔹 TODO: Integrate email service to send invitation email to the user
+    if (pendingInvite) {
+      throw new ConflictException('User already has a pending invite');
+    }
+
+    const token = randomUUID();
+
+    await this.prisma.invitation.create({
+      data: {
+        email,
+        organizationId: admin.organizationId,
+        roleId,
+        token,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      },
+    });
 
     return { message: 'Invitation sent successfully', token };
   }
 
   /**
-   * Accepts an invitation using a token, allowing a user to register or join an organization.
-   * @param acceptInviteDto - DTO containing the invite token and password.
-   * @returns A success message upon successful invite acceptance.
-   * @throws NotFoundException if the invitation does not exist.
-   * @throws UnauthorizedException if the invitation is expired or invalid.
+   * Processes the acceptance of an invitation
+   * @param acceptInviteDto - The acceptance details including token and password
+   * @returns Object containing success message
+   * @throws NotFoundException if invitation is invalid
+   * @throws UnauthorizedException if invitation has expired
    */
   async acceptInvite(acceptInviteDto: AcceptInviteDto) {
     const { token, password } = acceptInviteDto;
 
-    // Find invite by token
     const invite = await this.prisma.invitation.findUnique({
       where: { token },
     });
+
     if (!invite) {
       throw new NotFoundException('Invalid or expired invitation');
     }
 
-    // Ensure invite is still valid
     if (
       invite.status !== 'pending' ||
       new Date(invite.expiresAt) < new Date()
@@ -120,14 +123,8 @@ export class InvitationService {
           organizationId: invite.organizationId,
         },
       });
-    }
 
-    // Assign role to user if not already assigned
-    const existingRole = await this.prisma.userRole.findFirst({
-      where: { userId: user.id, roleId: invite.roleId },
-    });
-
-    if (!existingRole) {
+      // Assign role to user
       await this.prisma.userRole.create({
         data: {
           userId: user.id,
@@ -146,9 +143,9 @@ export class InvitationService {
   }
 
   /**
-   * Retrieves all invitations, optionally filtered by status.
-   * @param status - Optional status filter (pending, accepted, expired).
-   * @returns List of invitations.
+   * Retrieves all invitations, optionally filtered by status
+   * @param status - Optional status filter for invitations
+   * @returns Array of invitation records
    */
   async getInvitations(status?: string) {
     return this.prisma.invitation.findMany({
@@ -158,10 +155,10 @@ export class InvitationService {
   }
 
   /**
-   * Revokes an invitation by marking it as expired.
-   * @param token - Invitation token.
-   * @returns A success message if revocation is successful.
-   * @throws NotFoundException if the invitation does not exist.
+   * Revokes an existing invitation
+   * @param token - The invitation token to revoke
+   * @returns Object containing success message
+   * @throws NotFoundException if invitation is not found
    */
   async revokeInvitation(token: string) {
     const invite = await this.prisma.invitation.findUnique({
@@ -180,13 +177,13 @@ export class InvitationService {
   }
 
   /**
-   * Updates an invitation (e.g., changing the assigned role).
-   * @param token - Invitation token.
-   * @param roleId - New role ID.
-   * @returns The updated invitation.
-   * @throws NotFoundException if the invitation does not exist.
+   * Updates the role of an existing invitation
+   * @param token - The invitation token to update
+   * @param roleId - The new role ID to assign
+   * @returns Updated invitation record
+   * @throws NotFoundException if invitation is not found
    */
-  async updateInvitation(token: string, roleId: number) {
+  async updateInvitation(token: string, roleId: string) {
     const invite = await this.prisma.invitation.findUnique({
       where: { token },
     });

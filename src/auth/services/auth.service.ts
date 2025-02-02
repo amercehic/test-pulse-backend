@@ -58,7 +58,7 @@ export class AuthService {
           data: {
             email,
             password: hashedPassword,
-            organizationId: organization.id, // ✅ Auto-assign organization
+            organizationId: organization.id,
           },
         });
 
@@ -124,7 +124,7 @@ export class AuthService {
    * @returns A JWT token as a string.
    * @throws InternalServerErrorException if token generation fails.
    */
-  private generateToken(userId: number, email: string): string {
+  private generateToken(userId: string, email: string): string {
     try {
       return this.jwtService.sign({ userId, email });
     } catch (error: unknown) {

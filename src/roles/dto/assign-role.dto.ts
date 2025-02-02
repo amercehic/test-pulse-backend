@@ -1,12 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt } from 'class-validator';
+import { IsUUID } from 'class-validator';
 
 export class AssignRoleDto {
-  @ApiProperty({ example: 1, description: 'User ID to assign the role to' })
-  @IsInt()
-  userId: number;
+  @ApiProperty({ example: '468691a7-d6c1-4f70-a9ea-9872c79650d8' })
+  @IsUUID()
+  userId: string;
 
-  @ApiProperty({ example: 2, description: 'Role ID to assign' })
-  @IsInt()
-  roleId: number;
+  @ApiProperty({ example: 'f1c2d3e4-5678-9abc-def0-123456789abc' })
+  @IsUUID()
+  roleId: string;
 }
