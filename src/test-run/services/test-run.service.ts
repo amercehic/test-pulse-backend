@@ -1,13 +1,19 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { CreateTestRunDto } from './dto/create-test-run.dto';
-import { TestRunQueryDto } from './dto/test-run-query.dto';
-import { UpdateTestRunDto } from './dto/update-test-run.dto';
+import { PrismaService } from '@db/prisma.service';
+import { CreateTestRunDto } from '@/test-run/dto/create-test-run.dto';
+import { TestRunQueryDto } from '@/test-run/dto/test-run-query.dto';
+import { UpdateTestRunDto } from '@/test-run/dto/update-test-run.dto';
 
 @Injectable()
 export class TestRunService {
   constructor(private readonly prisma: PrismaService) {}
 
+  /**
+   * Creates a new TestRun along with its associated tests.
+   * @param createTestRunDto - Data transfer object containing TestRun details and associated tests.
+   * @returns The created TestRun object, including its associated tests.
+   * @throws Error if the creation process fails.
+   */
   async create(createTestRunDto: CreateTestRunDto): Promise<any> {
     const { tests, ...testRunData } = createTestRunDto;
 
@@ -42,6 +48,12 @@ export class TestRunService {
     }
   }
 
+  /**
+   * Retrieves a paginated list of TestRuns based on query parameters.
+   * @param query - Query parameters for filtering, sorting, and pagination.
+   * @returns An object containing the list of TestRuns and the total count.
+   * @throws Error if the fetch process fails.
+   */
   async findAll(
     query: TestRunQueryDto,
   ): Promise<{ data: any[]; total: number }> {
@@ -86,6 +98,13 @@ export class TestRunService {
     }
   }
 
+  /**
+   * Retrieves a single TestRun by its ID, including its associated tests and their previous runs.
+   * @param id - The ID of the TestRun to retrieve.
+   * @returns The TestRun object with associated tests and their previous runs.
+   * @throws NotFoundException if the TestRun is not found.
+   * @throws Error if the fetch process fails.
+   */
   async findOne(id: number): Promise<any> {
     try {
       const testRun = await this.prisma.testRun.findUnique({
@@ -107,6 +126,13 @@ export class TestRunService {
     }
   }
 
+  /**
+   * Updates an existing TestRun and its associated tests.
+   * @param id - The ID of the TestRun to update.
+   * @param updateTestRunDto - Data transfer object containing updated TestRun details and tests.
+   * @returns The updated TestRun object.
+   * @throws Error if the update process fails.
+   */
   async update(id: number, updateTestRunDto: UpdateTestRunDto): Promise<any> {
     const { tests, ...testRunData } = updateTestRunDto;
 
@@ -143,6 +169,12 @@ export class TestRunService {
     }
   }
 
+  /**
+   * Deletes a TestRun by its ID.
+   * @param id - The ID of the TestRun to delete.
+   * @throws NotFoundException if the TestRun is not found.
+   * @throws Error if the deletion process fails.
+   */
   async remove(id: number): Promise<void> {
     try {
       await this.prisma.testRun.delete({

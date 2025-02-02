@@ -1,12 +1,10 @@
-// src/test-run/test-run.service.spec.ts
-
 import { Test, TestingModule } from '@nestjs/testing';
-import { TestRunService } from './test-run.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { NotFoundException } from '@nestjs/common';
-import { CreateTestRunDto } from './dto/create-test-run.dto';
-import { TestRunQueryDto } from './dto/test-run-query.dto';
-import { UpdateTestRunDto } from './dto/update-test-run.dto';
+import { TestRunService } from '@/test-run/services/test-run.service';
+import { PrismaService } from '@db/prisma.service';
+import { CreateTestRunDto } from '@/test-run/dto/create-test-run.dto';
+import { UpdateTestRunDto } from '@/test-run/dto/update-test-run.dto';
+import { TestRunQueryDto } from '@/test-run/dto/test-run-query.dto';
 
 describe('TestRunService', () => {
   let service: TestRunService;

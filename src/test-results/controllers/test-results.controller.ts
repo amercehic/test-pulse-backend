@@ -1,6 +1,6 @@
+import { CreateTestResultDto } from '@/test-results/dto/create-test-result.dto';
+import { TestResultsService } from '@/test-results/services/test-results.service';
 import { Body, Controller, Get, Post } from '@nestjs/common';
-import { TestResultsService } from './test-results.service';
-import { CreateTestResultDto } from './dto/create-test-result.dto';
 
 @Controller('test-results')
 export class TestResultsController {
