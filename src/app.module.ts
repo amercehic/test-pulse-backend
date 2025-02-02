@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaService } from '@db/prisma.service';
 import { TestRunModule } from '@/test-run/test-run.module';
-import { AuthModule } from '@/auth/auth.module'; // ✅ Import AuthModule
-
+import { AuthModule } from '@/auth/auth.module';
+import { InvitationModule } from '@/invitation/invitation.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -12,6 +12,7 @@ import { AuthModule } from '@/auth/auth.module'; // ✅ Import AuthModule
     }),
     TestRunModule,
     AuthModule,
+    InvitationModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],

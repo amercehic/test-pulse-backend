@@ -7,7 +7,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
-  // Configure Swagger
+  // Build the Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('Test Pulse API')
     .setDescription('API documentation for Test Pulse backend')
@@ -15,14 +15,23 @@ async function bootstrap() {
     .addBearerAuth() // Enable Bearer token authentication
     .build();
 
+  // Create the Swagger document
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document); // Swagger UI at /api/docs
+
+  // Setup Swagger UI at /api/docs
+  SwaggerModule.setup('api/docs', app, document);
+
+  // Serve the raw JSON documentation at /api-json
+  // This uses the Express adapter's 'get' method:
+  app.getHttpAdapter().get('/api-json', (req, res) => {
+    res.json(document);
+  });
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  // ✅ Use NestJS Logger instead of console.log
   logger.log(`🚀 Application is running on: http://localhost:${port}/api/docs`);
+  logger.log(`📄 Swagger JSON available at: http://localhost:${port}/api-json`);
 }
 
 bootstrap();

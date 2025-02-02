@@ -39,7 +39,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     return {
-      ...user,
+      userId: user.id, // ✅ Ensure `userId` is explicitly available
+      email: user.email,
       roles: user.roles.map((userRole) => userRole.role),
       permissions: user.permissions.map(
         (userPermission) => userPermission.permission,

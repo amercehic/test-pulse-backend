@@ -1,5 +1,10 @@
 import { Body, Controller, Post, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { RegisterUserDto } from '@/auth/dto/register-user.dto';
 import { LoginUserDto } from '@/auth/dto/login-user.dto';
 import { AuthService } from '@/auth/services/auth.service';
@@ -29,9 +34,14 @@ export class AuthController {
     return this.authService.login(loginUserDto);
   }
 
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('admin', 'super')
   @Post('assign-role')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'super')
+  @ApiOperation({ summary: 'Assign a role to a user' })
+  @ApiResponse({ status: 200, description: 'Role assigned successfully' })
+  @ApiResponse({ status: 404, description: 'User or role not found' })
+  @ApiResponse({ status: 409, description: 'User already has this role' })
   async assignRole(@Body() assignRoleDto: AssignRoleDto) {
     return this.authService.assignRole(assignRoleDto);
   }
