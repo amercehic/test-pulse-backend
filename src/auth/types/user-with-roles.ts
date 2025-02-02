@@ -1,6 +1,9 @@
-import { User, Role, Permission } from '@prisma/client';
+import { Role } from '@prisma/client';
+import { Permission } from '@prisma/client';
 
-export interface AuthenticatedUser extends User {
+export interface AuthenticatedUser {
+  userId: number;
+  email: string;
   roles: Role[];
   permissions: Permission[];
 }

@@ -24,14 +24,16 @@ export class AuthService {
 
   /**
    * Registers a new user in the system.
-   * @param registerUserDto - Data transfer object containing user registration details (email, password, organizationId).
+   * A new organization is automatically created for the user.
+   * @param registerUserDto - DTO containing user registration details (email, password).
    * @returns An object containing the newly created user and a JWT token.
    * @throws UnauthorizedException if a user with the same email already exists.
    * @throws InternalServerErrorException if the registration process fails.
    */
   async register(registerUserDto: RegisterUserDto) {
-    const { email, password, organizationId } = registerUserDto;
+    const { email, password } = registerUserDto;
 
+    // 🔹 Check if the user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
@@ -39,18 +41,39 @@ export class AuthService {
       this.logger.warn(
         `Registration failed: User with email ${email} already exists.`,
       );
-      throw new UnauthorizedException('User with this email already exists');
+      throw new ConflictException('User with this email already exists');
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
     return this.prisma.$transaction(async (prisma) => {
       try {
+        // 🔹 Always create a new organization for self-registered users
+        const organization = await prisma.organization.create({
+          data: { name: `${email}'s Organization` },
+        });
+
+        // 🔹 Create the user
         const user = await prisma.user.create({
           data: {
             email,
             password: hashedPassword,
-            organizationId,
+            organizationId: organization.id, // ✅ Auto-assign organization
+          },
+        });
+
+        // 🔹 Assign the user as an `admin` in their new organization
+        const adminRole = await prisma.role.findFirst({
+          where: { name: 'admin' },
+        });
+        if (!adminRole) {
+          throw new InternalServerErrorException('Admin role not found');
+        }
+
+        await prisma.userRole.create({
+          data: {
+            userId: user.id,
+            roleId: adminRole.id,
           },
         });
 

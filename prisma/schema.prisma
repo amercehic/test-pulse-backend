@@ -46,11 +46,12 @@ model TestHistory {
 }
 
 model Organization {
-  id        Int      @id @default(autoincrement())
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  users     User[]   @relation("OrganizationUsers")
+  id         Int          @id @default(autoincrement())
+  name       String
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  users      User[]       @relation("OrganizationUsers")
+  Invitation Invitation[]
 }
 
 model User {
@@ -73,6 +74,7 @@ model Role {
   users       UserRole[]       @relation("UserToRoles")
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
+  Invitation  Invitation[]
 }
 
 model Permission {
@@ -107,4 +109,18 @@ model UserPermission {
   permissionId Int
   user         User       @relation("UserToPermissions", fields: [userId], references: [id], onDelete: Cascade)
   permission   Permission @relation("UserToPermissions", fields: [permissionId], references: [id], onDelete: Cascade)
+}
+
+model Invitation {
+  id             Int      @id @default(autoincrement())
+  email          String   @unique
+  organizationId Int
+  roleId         Int
+  token          String   @unique
+  status         String   @default("pending") // "pending" | "accepted" | "expired"
+  expiresAt      DateTime
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
 }
