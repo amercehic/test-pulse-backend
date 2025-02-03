@@ -12,7 +12,7 @@ import * as bcrypt from 'bcrypt';
 import { RegisterUserDto } from '@/auth/dto/register-user.dto';
 import { LoginUserDto } from '@/auth/dto/login-user.dto';
 import { AssignRoleDto } from '@/roles/dto/assign-role.dto';
-import { randomUUID } from 'crypto';
+import { RoleEnum } from '@/roles/roles.enum';
 
 // Mock bcrypt
 jest.mock('bcrypt', () => ({
@@ -24,6 +24,7 @@ describe('AuthService', () => {
   let service: AuthService;
   let prisma: any;
   let jwtService: any;
+  let loggerSpy: jest.SpyInstance;
 
   const mockPrismaService = {
     user: {
@@ -34,8 +35,7 @@ describe('AuthService', () => {
       create: jest.fn(),
     },
     role: {
-      findFirst: jest.fn(),
-      findUnique: jest.fn(),
+      findUnique: jest.fn(), // ✅ Lookup by role name instead of UUID
     },
     userRole: {
       findFirst: jest.fn(),
@@ -48,12 +48,8 @@ describe('AuthService', () => {
   };
 
   const mockJwtService = {
-    sign: jest.fn().mockReturnValue('jwt.token.here') as jest.MockedFunction<
-      () => string
-    >,
+    sign: jest.fn().mockReturnValue('jwt.token.here'),
   };
-
-  let loggerSpy: jest.SpyInstance;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -85,16 +81,14 @@ describe('AuthService', () => {
     };
 
     it('should successfully register a new user', async () => {
-      const mockUser = { id: randomUUID(), email: registerDto.email };
-      const mockOrganization = { id: randomUUID(), name: 'Test Org' };
-      const mockRole = { id: randomUUID(), name: 'admin' };
+      const mockUser = { id: 'user-uuid', email: registerDto.email };
+      const mockOrganization = { id: 'org-uuid', name: 'Test Org' };
+      const mockRole = { id: 'role-uuid', name: 'admin' };
 
       prisma.user.findUnique.mockResolvedValue(null);
       prisma.organization.create.mockResolvedValue(mockOrganization);
       prisma.user.create.mockResolvedValue(mockUser);
-
-      prisma.role.findFirst.mockResolvedValue(mockRole);
-
+      prisma.role.findUnique.mockResolvedValue(mockRole);
       prisma.userRole.create.mockResolvedValue({});
 
       const result = await service.register(registerDto);
@@ -103,7 +97,7 @@ describe('AuthService', () => {
         where: { email: registerDto.email },
       });
       expect(prisma.organization.create).toHaveBeenCalled();
-      expect(prisma.role.findFirst).toHaveBeenCalledWith({
+      expect(prisma.role.findUnique).toHaveBeenCalledWith({
         where: { name: 'admin' },
       });
       expect(prisma.userRole.create).toHaveBeenCalled();
@@ -112,7 +106,7 @@ describe('AuthService', () => {
     });
 
     it('should throw ConflictException if user already exists', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: randomUUID() });
+      prisma.user.findUnique.mockResolvedValue({ id: 'existing-user-uuid' });
 
       await expect(service.register(registerDto)).rejects.toThrow(
         ConflictException,
@@ -121,8 +115,7 @@ describe('AuthService', () => {
 
     it('should throw InternalServerErrorException if admin role is missing', async () => {
       prisma.user.findUnique.mockResolvedValue(null);
-
-      prisma.role.findFirst.mockResolvedValue(null);
+      prisma.role.findUnique.mockResolvedValue(null);
 
       await expect(service.register(registerDto)).rejects.toThrow(
         InternalServerErrorException,
@@ -136,7 +129,7 @@ describe('AuthService', () => {
       password: 'password123',
     };
     const mockUser = {
-      id: randomUUID(),
+      id: 'user-uuid',
       email: loginDto.email,
       password: 'hashedPassword',
     };
@@ -177,11 +170,11 @@ describe('AuthService', () => {
 
   describe('assignRole', () => {
     const assignRoleDto: AssignRoleDto = {
-      userId: randomUUID(),
-      roleId: randomUUID(),
+      userId: 'user-uuid',
+      roleName: RoleEnum.ADMIN,
     };
     const mockUser = { id: assignRoleDto.userId, email: 'user@example.com' };
-    const mockRole = { id: assignRoleDto.roleId, name: 'ADMIN' };
+    const mockRole = { id: 'role-uuid', name: assignRoleDto.roleName };
 
     it('should successfully assign a role to a user', async () => {
       prisma.user.findUnique.mockResolvedValue(mockUser);
@@ -195,7 +188,7 @@ describe('AuthService', () => {
         where: { id: assignRoleDto.userId },
       });
       expect(prisma.role.findUnique).toHaveBeenCalledWith({
-        where: { id: assignRoleDto.roleId },
+        where: { name: assignRoleDto.roleName },
       });
       expect(prisma.userRole.create).toHaveBeenCalled();
       expect(result).toEqual({

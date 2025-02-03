@@ -63,28 +63,30 @@ model User {
   organizationId String
   organization   Organization     @relation("OrganizationUsers", fields: [organizationId], references: [id], onDelete: Cascade)
   permissions    UserPermission[] @relation("UserToPermissions")
-  roles          UserRole[]       @relation("UserToRoles")
+  roles          UserRole[]       @relation("RoleToUsers")
 }
 
 model Role {
-  id          String           @id @default(uuid())
-  name        String           @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
   description String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @default(now())
-  invitations Invitation[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  invitations Invitation[]     @relation("RoleToInvitations")
   permissions RolePermission[] @relation("RoleToPermissions")
-  users       UserRole[]       @relation("UserToRoles")
+  users       UserRole[]       @relation("RoleToUsers")
 }
 
 model Permission {
-  id          String           @id @default(uuid())
-  name        String           @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
   description String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @default(now())
-  roles       RolePermission[] @relation("RoleToPermissions")
-  users       UserPermission[] @relation("UserToPermissions")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  roles RolePermission[] @relation("RoleToPermissions")
+  users UserPermission[] @relation("UserToPermissions")
 }
 
 model RolePermission {
@@ -99,8 +101,8 @@ model UserRole {
   id     String @id @default(uuid())
   userId String
   roleId String
-  role   Role   @relation("UserToRoles", fields: [roleId], references: [id], onDelete: Cascade)
-  user   User   @relation("UserToRoles", fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation("RoleToUsers", fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation("RoleToUsers", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserPermission {
@@ -112,14 +114,15 @@ model UserPermission {
 }
 
 model Invitation {
-  id             String       @id @default(uuid())
-  email          String       @unique
+  id             String   @id @default(uuid())
+  email          String   @unique
   organizationId String
   roleId         String
-  token          String       @unique
-  status         String       @default("pending")
+  token          String   @unique
+  status         String   @default("pending")
   expiresAt      DateTime
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  role           Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role         Role         @relation("RoleToInvitations", fields: [roleId], references: [id], onDelete: Cascade)
 }

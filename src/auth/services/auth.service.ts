@@ -24,19 +24,18 @@ export class AuthService {
 
   /**
    * Registers a new user in the system.
-   * A new organization is automatically created for the user.
-   * @param registerUserDto - DTO containing user registration details (email, password).
-   * @returns An object containing the newly created user and a JWT token.
-   * @throws UnauthorizedException if a user with the same email already exists.
-   * @throws InternalServerErrorException if the registration process fails.
+   * @param registerUserDto - DTO containing user registration details.
+   * @returns A new user and a JWT token.
+   * @throws ConflictException if the user already exists.
+   * @throws InternalServerErrorException if an error occurs during registration.
    */
   async register(registerUserDto: RegisterUserDto) {
     const { email, password } = registerUserDto;
 
-    // 🔹 Check if the user already exists
     const existingUser = await this.prisma.user.findUnique({
       where: { email },
     });
+
     if (existingUser) {
       this.logger.warn(
         `Registration failed: User with email ${email} already exists.`,
@@ -48,12 +47,12 @@ export class AuthService {
 
     return this.prisma.$transaction(async (prisma) => {
       try {
-        // 🔹 Always create a new organization for self-registered users
+        // ✅ Ensure organization is created
         const organization = await prisma.organization.create({
           data: { name: `${email}'s Organization` },
         });
 
-        // 🔹 Create the user
+        // ✅ Ensure user is created
         const user = await prisma.user.create({
           data: {
             email,
@@ -62,11 +61,13 @@ export class AuthService {
           },
         });
 
-        // 🔹 Assign the user as an `admin` in their new organization
-        const adminRole = await prisma.role.findFirst({
+        // ✅ Ensure role lookup does not fail
+        const adminRole = await prisma.role.findUnique({
           where: { name: 'admin' },
         });
+
         if (!adminRole) {
+          this.logger.error(`User registration failed: Admin role not found`);
           throw new InternalServerErrorException('Admin role not found');
         }
 
@@ -81,10 +82,9 @@ export class AuthService {
 
         return { user, token };
       } catch (error: unknown) {
-        const err = error as Error;
         this.logger.error(
-          `User registration failed: ${err.message}`,
-          err.stack,
+          `User registration failed: ${(error as Error).message}`,
+          error,
         );
         throw new InternalServerErrorException('User registration failed');
       }
@@ -138,39 +138,40 @@ export class AuthService {
   }
 
   /**
-   * Assigns a role to a user.
-   * @param assignRoleDto - Data transfer object containing the user ID and role ID.
-   * @returns A success message indicating the role was assigned.
-   * @throws NotFoundException if the user or role does not exist.
+   * Assigns a role to a user in the system.
+   * @param assignRoleDto - Data transfer object containing user ID and role name.
+   * @returns An object containing a success message.
+   * @throws NotFoundException if the user or role is not found.
    * @throws ConflictException if the user already has the specified role.
    */
   async assignRole(assignRoleDto: AssignRoleDto) {
-    const { userId, roleId } = assignRoleDto;
+    const { userId, roleName } = assignRoleDto;
 
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    const role = await this.prisma.role.findUnique({ where: { id: roleId } });
+    // Fetch the role by the ENUM name instead of a string
+    const role = await this.prisma.role.findUnique({
+      where: { name: roleName },
+    });
     if (!role) {
-      throw new NotFoundException(`Role with ID ${roleId} not found`);
+      throw new NotFoundException(`Role ${roleName} not found`);
     }
 
     const existingUserRole = await this.prisma.userRole.findFirst({
-      where: { userId, roleId },
+      where: { userId, roleId: role.id },
     });
+
     if (existingUserRole) {
       throw new ConflictException('User already has this role');
     }
 
     await this.prisma.userRole.create({
-      data: {
-        userId,
-        roleId,
-      },
+      data: { userId, roleId: role.id },
     });
 
-    return { message: `Role ${role.name} assigned to user ${user.email}` };
+    return { message: `Role ${roleName} assigned to user ${user.email}` };
   }
 }

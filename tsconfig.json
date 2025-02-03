@@ -9,8 +9,8 @@
     "baseUrl": "./src", // Required for absolute imports
     "paths": {
       "@/*": ["*"],
-      // Change this to avoid collision with npm's @prisma/client
-      "@db/*": ["../prisma/*"]
+      "@db/*": ["../prisma/*"],
+    "@seeds/*": ["prisma/seeds/*"]
     },
     "strict": true,
     "noImplicitAny": true,

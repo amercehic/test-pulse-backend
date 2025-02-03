@@ -1,12 +1,14 @@
+// src/roles/dto/assign-role.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsUUID } from 'class-validator';
+import { IsEnum, IsUUID } from 'class-validator';
+import { RoleEnum } from '../roles.enum';
 
 export class AssignRoleDto {
-  @ApiProperty({ example: '468691a7-d6c1-4f70-a9ea-9872c79650d8' })
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
   @IsUUID()
   userId: string;
 
-  @ApiProperty({ example: 'f1c2d3e4-5678-9abc-def0-123456789abc' })
-  @IsUUID()
-  roleId: string;
+  @ApiProperty({ example: RoleEnum.ADMIN, enum: RoleEnum })
+  @IsEnum(RoleEnum)
+  roleName: RoleEnum;
 }
