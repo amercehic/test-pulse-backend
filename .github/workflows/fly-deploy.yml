@@ -26,8 +26,6 @@ jobs:
 
       - name: Install Flyctl
         uses: superfly/flyctl-actions@master
-        with:
-          version: 'latest'
 
       - name: Deploy
         run: flyctl deploy --config ./fly.toml
