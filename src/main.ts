@@ -44,7 +44,9 @@ async function bootstrap() {
   await app.listen(port);
 
   logger.log(`🚀 Application is running on: http://localhost:${port}/api/docs`);
-  logger.log(`📄 Swagger JSON available at: http://localhost:${port}/api-json`);
+  logger.log(
+    `📄 Swagger JSON available at: http://localhost:${port}/api/docs/json`,
+  );
 }
 
 bootstrap();
