@@ -6,15 +6,16 @@ export class AcceptInviteDto {
     example: 'f23a4d8c-89d2-4b6e-9f12-7bd1e0ab1f2c',
     description: 'Invitation token',
   })
-  @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Invitation token is required' })
+  @IsString({ message: 'Invitation token must be a string' })
   token: string;
 
   @ApiProperty({
     example: 'password123!',
     description: 'User-defined password',
   })
-  @IsString()
-  @MinLength(8)
+  @IsNotEmpty({ message: 'Password is required' })
+  @IsString({ message: 'Password must be a string' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
   password: string;
 }

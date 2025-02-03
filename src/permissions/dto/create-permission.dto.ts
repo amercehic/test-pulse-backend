@@ -1,15 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, IsNotEmpty } from 'class-validator';
 
 export class CreatePermissionDto {
   @ApiProperty({ example: 'view:test-run', description: 'Permission name' })
-  @IsString()
+  @IsNotEmpty({ message: 'Permission name is required' })
+  @IsString({ message: 'Permission name must be a string' })
   name: string;
 
   @ApiProperty({
     example: 'Allows viewing test runs',
     description: 'Permission description',
   })
-  @IsString()
+  @IsNotEmpty({ message: 'Permission description is required' })
+  @IsString({ message: 'Permission description must be a string' })
   description: string;
 }
