@@ -1,11 +1,25 @@
-import { AppModule } from '@/app.module';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { Logger } from '@nestjs/common';
+
+import { AppModule } from '@/app.module';
+import { AllExceptionsFilter } from '@/common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
+
+  // Register the global exception filter
+  app.useGlobalFilters(new AllExceptionsFilter());
+
+  // Enable global validation
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true, // Strip properties that don't have any decorators
+      forbidNonWhitelisted: true, // Throw an error if non-decorated properties are provided
+      transform: true, // Automatically transform payloads to DTO instances
+    }),
+  );
 
   // Build the Swagger configuration
   const config = new DocumentBuilder()
@@ -22,7 +36,6 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, document);
 
   // Serve the raw JSON documentation at /api-json
-  // This uses the Express adapter's 'get' method:
   app.getHttpAdapter().get('/api-json', (req, res) => {
     res.json(document);
   });
@@ -31,7 +44,9 @@ async function bootstrap() {
   await app.listen(port);
 
   logger.log(`🚀 Application is running on: http://localhost:${port}/api/docs`);
-  logger.log(`📄 Swagger JSON available at: http://localhost:${port}/api-json`);
+  logger.log(
+    `📄 Swagger JSON available at: http://localhost:${port}/api/docs/json`,
+  );
 }
 
 bootstrap();

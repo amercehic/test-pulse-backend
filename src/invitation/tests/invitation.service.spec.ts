@@ -1,15 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { InvitationService } from '@/invitation/services/invitation.service';
 import { PrismaService } from '@db/prisma.service';
-import { InviteUserDto } from '@/invitation/dto/invite.dto';
-import { AcceptInviteDto } from '@/invitation/dto/accept-invite.dto';
 import {
   ConflictException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { randomUUID } from 'crypto';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
+
+import { AcceptInviteDto } from '@/invitation/dto/accept-invite.dto';
+import { InviteUserDto } from '@/invitation/dto/invite.dto';
+import { InvitationService } from '@/invitation/services/invitation.service';
 
 // Mock bcrypt
 jest.mock('bcrypt', () => ({

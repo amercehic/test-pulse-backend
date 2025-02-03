@@ -1,14 +1,15 @@
+import { PrismaService } from '@db/prisma.service';
 import {
+  ConflictException,
   Injectable,
   NotFoundException,
-  ConflictException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from '@db/prisma.service';
-import { InviteUserDto } from '@/invitation/dto/invite.dto';
-import { AcceptInviteDto } from '@/invitation/dto/accept-invite.dto';
-import { randomUUID } from 'crypto';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
+
+import { AcceptInviteDto } from '@/invitation/dto/accept-invite.dto';
+import { InviteUserDto } from '@/invitation/dto/invite.dto';
 
 /**
  * Service handling user invitations within organizations

@@ -10,18 +10,19 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
+  ApiBearerAuth,
+  ApiBody,
   ApiOperation,
   ApiParam,
   ApiQuery,
-  ApiBody,
-  ApiBearerAuth,
+  ApiTags,
 } from '@nestjs/swagger';
+
+import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { CreateTestRunDto } from '@/test-run/dto/create-test-run.dto';
 import { TestRunQueryDto } from '@/test-run/dto/test-run-query.dto';
 import { UpdateTestRunDto } from '@/test-run/dto/update-test-run.dto';
 import { TestRunService } from '@/test-run/services/test-run.service';
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 
 @ApiTags('Test Runs') // Group endpoints under "Test Runs"
 @ApiBearerAuth()

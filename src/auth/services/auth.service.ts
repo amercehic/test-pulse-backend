@@ -1,16 +1,17 @@
+import { PrismaService } from '@db/prisma.service';
 import {
+  ConflictException,
   Injectable,
-  UnauthorizedException,
   InternalServerErrorException,
   Logger,
   NotFoundException,
-  ConflictException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { PrismaService } from '@db/prisma.service';
 import * as bcrypt from 'bcrypt';
-import { RegisterUserDto } from '@/auth/dto/register-user.dto';
+
 import { LoginUserDto } from '@/auth/dto/login-user.dto';
+import { RegisterUserDto } from '@/auth/dto/register-user.dto';
 import { AssignRoleDto } from '@/roles/dto/assign-role.dto';
 
 @Injectable()

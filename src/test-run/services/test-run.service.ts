@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@db/prisma.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
+
 import { CreateTestRunDto } from '@/test-run/dto/create-test-run.dto';
 import { TestRunQueryDto } from '@/test-run/dto/test-run-query.dto';
 import { UpdateTestRunDto } from '@/test-run/dto/update-test-run.dto';
@@ -62,10 +63,18 @@ export class TestRunService {
     const take = Number(limit);
 
     const where: any = {};
-    if (status) where.status = status;
-    if (framework) where.framework = framework;
-    if (browser) where.browser = browser;
-    if (platform) where.platform = platform;
+    if (status) {
+      where.status = status;
+    }
+    if (framework) {
+      where.framework = framework;
+    }
+    if (browser) {
+      where.browser = browser;
+    }
+    if (platform) {
+      where.platform = platform;
+    }
 
     try {
       const [data, total] = await Promise.all([
