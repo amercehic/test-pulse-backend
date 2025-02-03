@@ -21,27 +21,25 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build Application
-        run: yarn build
-
       - name: Install Flyctl
         run: |
           curl -L https://fly.io/install.sh | sh
           export FLYCTL_INSTALL="$HOME/.fly"
           export PATH="$FLYCTL_INSTALL/bin:$PATH"
 
-      - name: Deploy Database Migrations
+      - name: Fetch DATABASE_URL from Fly.io
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: echo "DATABASE_URL=$(flyctl secrets get DATABASE_URL --app <your-app-name>)" >> $GITHUB_ENV
+
+      - name: Build Application
+        run: yarn build
+
+      - name: Deploy Database Migrations
         run: npx prisma migrate deploy
 
       - name: Run Database Seed
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-        run: yarn db:seed
-
-      - name: Verify Flyctl Installation
-        run: flyctl version
+        run: yarn seed
 
       - name: Deploy to Fly.io
         env:
