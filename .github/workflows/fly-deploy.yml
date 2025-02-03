@@ -1,4 +1,4 @@
-name: Deploy to Fly.io
+name: Deploy to Fly
 
 on:
   push:
@@ -8,29 +8,28 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Check out repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js
+      - name: Set up Node
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: yarn
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: yarn install --frozen-lockfile
-
-      - name: Install Flyctl
-        run: |
-          curl -L https://fly.io/install.sh | sh
-          export FLYCTL_INSTALL="$HOME/.fly"
-          export PATH="$FLYCTL_INSTALL/bin:$PATH"
 
       - name: Build Application
         run: yarn build
 
-      - name: Deploy to Fly.io
+      - name: Install Flyctl
+        uses: superfly/flyctl-actions@master
+        with:
+          version: 'latest'
+
+      - name: Deploy
+        run: flyctl deploy --config ./fly.toml
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: flyctl deploy --remote-only
