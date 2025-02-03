@@ -86,7 +86,6 @@ Before you begin, ensure you have the following installed:
 ✅ Node.js (v18 or higher)
 ✅ PostgreSQL
 ✅ Yarn package manager
-✅ Redis (optional, for caching)
 
 ## 🚀 Getting Started
 
@@ -107,23 +106,17 @@ yarn install
 
 Create a `.env` file in the project root:
 
-```env
+````env
 # Database Configuration
 DATABASE_URL=postgresql://user:password@localhost:5432/test_pulse
 
 # Security
 JWT_SECRET=your-jwt-secret
 JWT_EXPIRATION=24h
-BCRYPT_SALT_ROUNDS=10
 
 # Server Configuration
 PORT=3000
 NODE_ENV=development
-
-# Optional: Redis Configuration
-REDIS_HOST=localhost
-REDIS_PORT=6379
-```
 
 ### 🗄️ Database Setup
 
@@ -133,7 +126,7 @@ yarn prisma migrate dev
 
 # Seed initial data
 yarn seed
-```
+````
 
 ### 🏃‍♂️ Running the Application
 
