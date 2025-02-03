@@ -1,12 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CreateTestDto } from '@/test-run/dto/create-test.dto';
 import {
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
   IsOptional,
   IsString,
-  IsNotEmpty,
-  IsIn,
-  IsNumber,
 } from 'class-validator';
+
+import { CreateTestDto } from '@/test-run/dto/create-test.dto';
 
 export class CreateTestRunDto {
   @ApiProperty({ description: 'Name of the test run' })

@@ -10,33 +10,55 @@ on:
 
 jobs:
   build-and-test:
-    name: Build and Test
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:13
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/testdb?schema=public
 
     steps:
-      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 18
           cache: yarn
 
-      # Install dependencies
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      # Run Linter
+      - name: Prisma Format Check
+        run: npx prisma format --check
+
+      - name: Prisma Validate
+        run: npx prisma validate
+
+      - name: Prisma Generate
+        run: npx prisma generate
+
+      - name: Prisma Migrate Status
+        run: npx prisma migrate status
+
       - name: Run Linter
         run: yarn lint
 
-      # Run Unit Tests
       - name: Run Unit Tests
         run: yarn test
 
-      # Build the Application
       - name: Build Application
         run: yarn build

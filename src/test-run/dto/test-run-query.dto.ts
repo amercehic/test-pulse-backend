@@ -1,6 +1,6 @@
-import { IsOptional, IsString, IsIn, IsInt, Min } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class TestRunQueryDto {
   @ApiPropertyOptional({

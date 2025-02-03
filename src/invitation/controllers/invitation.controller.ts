@@ -7,24 +7,25 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiQuery,
-  ApiParam,
   ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { InvitationService } from '@/invitation/services/invitation.service';
-import { InviteUserDto } from '@/invitation/dto/invite.dto';
-import { AcceptInviteDto } from '@/invitation/dto/accept-invite.dto';
+import { Request } from 'express';
+
+import { Roles } from '@/auth/decorators/roles.decorator';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
-import { Roles } from '@/auth/decorators/roles.decorator';
-import { Request } from 'express';
+import { AcceptInviteDto } from '@/invitation/dto/accept-invite.dto';
+import { InviteUserDto } from '@/invitation/dto/invite.dto';
+import { InvitationService } from '@/invitation/services/invitation.service';
 
 @ApiTags('Invitations')
 @ApiBearerAuth()

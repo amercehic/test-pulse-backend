@@ -1,16 +1,17 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AuthService } from '@/auth/services/auth.service';
 import { PrismaService } from '@db/prisma.service';
-import { JwtService } from '@nestjs/jwt';
 import {
-  UnauthorizedException,
+  ConflictException,
   InternalServerErrorException,
   NotFoundException,
-  ConflictException,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
-import { RegisterUserDto } from '@/auth/dto/register-user.dto';
+
 import { LoginUserDto } from '@/auth/dto/login-user.dto';
+import { RegisterUserDto } from '@/auth/dto/register-user.dto';
+import { AuthService } from '@/auth/services/auth.service';
 import { AssignRoleDto } from '@/roles/dto/assign-role.dto';
 import { RoleEnum } from '@/roles/roles.enum';
 
