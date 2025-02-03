@@ -8,7 +8,7 @@ datasource db {
 }
 
 model TestRun {
-  id             Int      @id @default(autoincrement())
+  id             String   @id @default(uuid())
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   name           String
@@ -25,20 +25,20 @@ model TestRun {
 }
 
 model Test {
-  id            Int     @id @default(autoincrement())
+  id            String  @id @default(uuid())
   name          String
   status        String
   duration      Float
   logs          String
-  testRunId     Int
-  previousRunId Int?
+  testRunId     String
+  previousRunId String?
   previousRun   Test?   @relation("PreviousRun", fields: [previousRunId], references: [id])
   nextRun       Test[]  @relation("PreviousRun")
   testRun       TestRun @relation(fields: [testRunId], references: [id], onDelete: Cascade)
 }
 
 model TestHistory {
-  id       Int    @id @default(autoincrement())
+  id       String @id @default(uuid())
   name     String
   status   String
   duration Float
@@ -46,81 +46,83 @@ model TestHistory {
 }
 
 model Organization {
-  id         Int          @id @default(autoincrement())
-  name       String
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  users      User[]       @relation("OrganizationUsers")
-  Invitation Invitation[]
+  id          String       @id @default(uuid())
+  name        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  invitations Invitation[]
+  users       User[]       @relation("OrganizationUsers")
 }
 
 model User {
-  id             Int              @id @default(autoincrement())
+  id             String           @id @default(uuid())
   email          String           @unique
-  password       String // Hashed password
+  password       String
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
-  roles          UserRole[]       @relation("UserToRoles") // User can have multiple roles
-  permissions    UserPermission[] @relation("UserToPermissions") // Direct permissions assigned to the user
-  organizationId Int
+  organizationId String
   organization   Organization     @relation("OrganizationUsers", fields: [organizationId], references: [id], onDelete: Cascade)
+  permissions    UserPermission[] @relation("UserToPermissions")
+  roles          UserRole[]       @relation("RoleToUsers")
 }
 
 model Role {
-  id          Int              @id @default(autoincrement())
-  name        String           @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
   description String?
-  permissions RolePermission[] @relation("RoleToPermissions") // Permissions associated with this role
-  users       UserRole[]       @relation("UserToRoles")
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  Invitation  Invitation[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  invitations Invitation[]     @relation("RoleToInvitations")
+  permissions RolePermission[] @relation("RoleToPermissions")
+  users       UserRole[]       @relation("RoleToUsers")
 }
 
 model Permission {
-  id          Int              @id @default(autoincrement())
-  name        String           @unique // e.g., "view:test-run"
+  id          String   @id @default(uuid())
+  name        String   @unique
   description String?
-  roles       RolePermission[] @relation("RoleToPermissions")
-  users       UserPermission[] @relation("UserToPermissions")
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  roles RolePermission[] @relation("RoleToPermissions")
+  users UserPermission[] @relation("UserToPermissions")
 }
 
 model RolePermission {
-  id           Int        @id @default(autoincrement())
-  roleId       Int
-  permissionId Int
-  role         Role       @relation("RoleToPermissions", fields: [roleId], references: [id], onDelete: Cascade)
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
   permission   Permission @relation("RoleToPermissions", fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation("RoleToPermissions", fields: [roleId], references: [id], onDelete: Cascade)
 }
 
 model UserRole {
-  id     Int  @id @default(autoincrement())
-  userId Int
-  roleId Int
-  user   User @relation("UserToRoles", fields: [userId], references: [id], onDelete: Cascade)
-  role   Role @relation("UserToRoles", fields: [roleId], references: [id], onDelete: Cascade)
+  id     String @id @default(uuid())
+  userId String
+  roleId String
+  role   Role   @relation("RoleToUsers", fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation("RoleToUsers", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserPermission {
-  id           Int        @id @default(autoincrement())
-  userId       Int
-  permissionId Int
-  user         User       @relation("UserToPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  id           String     @id @default(uuid())
+  userId       String
+  permissionId String
   permission   Permission @relation("UserToPermissions", fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation("UserToPermissions", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Invitation {
-  id             Int      @id @default(autoincrement())
+  id             String   @id @default(uuid())
   email          String   @unique
-  organizationId Int
-  roleId         Int
+  organizationId String
+  roleId         String
   token          String   @unique
-  status         String   @default("pending") // "pending" | "accepted" | "expired"
+  status         String   @default("pending")
   expiresAt      DateTime
   createdAt      DateTime @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  role         Role         @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  role         Role         @relation("RoleToInvitations", fields: [roleId], references: [id], onDelete: Cascade)
 }

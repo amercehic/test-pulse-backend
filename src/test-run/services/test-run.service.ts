@@ -8,12 +8,6 @@ import { UpdateTestRunDto } from '@/test-run/dto/update-test-run.dto';
 export class TestRunService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /**
-   * Creates a new TestRun along with its associated tests.
-   * @param createTestRunDto - Data transfer object containing TestRun details and associated tests.
-   * @returns The created TestRun object, including its associated tests.
-   * @throws Error if the creation process fails.
-   */
   async create(createTestRunDto: CreateTestRunDto): Promise<any> {
     const { tests, ...testRunData } = createTestRunDto;
 
@@ -29,8 +23,10 @@ export class TestRunService {
                       where: { name: test.name },
                       orderBy: { id: 'desc' },
                     });
+
                     return {
                       ...test,
+                      id: test.id?.toString(),
                       previousRunId: previousTest?.id || null,
                     };
                   }),
@@ -48,12 +44,6 @@ export class TestRunService {
     }
   }
 
-  /**
-   * Retrieves a paginated list of TestRuns based on query parameters.
-   * @param query - Query parameters for filtering, sorting, and pagination.
-   * @returns An object containing the list of TestRuns and the total count.
-   * @throws Error if the fetch process fails.
-   */
   async findAll(
     query: TestRunQueryDto,
   ): Promise<{ data: any[]; total: number }> {
@@ -98,14 +88,7 @@ export class TestRunService {
     }
   }
 
-  /**
-   * Retrieves a single TestRun by its ID, including its associated tests and their previous runs.
-   * @param id - The ID of the TestRun to retrieve.
-   * @returns The TestRun object with associated tests and their previous runs.
-   * @throws NotFoundException if the TestRun is not found.
-   * @throws Error if the fetch process fails.
-   */
-  async findOne(id: number): Promise<any> {
+  async findOne(id: string): Promise<any> {
     try {
       const testRun = await this.prisma.testRun.findUnique({
         where: { id },
@@ -126,14 +109,7 @@ export class TestRunService {
     }
   }
 
-  /**
-   * Updates an existing TestRun and its associated tests.
-   * @param id - The ID of the TestRun to update.
-   * @param updateTestRunDto - Data transfer object containing updated TestRun details and tests.
-   * @returns The updated TestRun object.
-   * @throws Error if the update process fails.
-   */
-  async update(id: number, updateTestRunDto: UpdateTestRunDto): Promise<any> {
+  async update(id: string, updateTestRunDto: UpdateTestRunDto): Promise<any> {
     const { tests, ...testRunData } = updateTestRunDto;
 
     if (tests) {
@@ -141,13 +117,14 @@ export class TestRunService {
         tests.map(async (test) => {
           if (test.id) {
             await this.prisma.test.update({
-              where: { id: test.id },
-              data: { ...test },
+              where: { id: test.id.toString() },
+              data: { ...test, id: test.id.toString() },
             });
           } else {
             await this.prisma.test.create({
               data: {
                 ...test,
+                id: test.id?.toString(),
                 testRunId: id,
               },
             });
@@ -169,13 +146,7 @@ export class TestRunService {
     }
   }
 
-  /**
-   * Deletes a TestRun by its ID.
-   * @param id - The ID of the TestRun to delete.
-   * @throws NotFoundException if the TestRun is not found.
-   * @throws Error if the deletion process fails.
-   */
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     try {
       await this.prisma.testRun.delete({
         where: { id },

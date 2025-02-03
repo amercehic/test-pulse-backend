@@ -24,9 +24,9 @@ import { TestRunService } from '@/test-run/services/test-run.service';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 
 @ApiTags('Test Runs') // Group endpoints under "Test Runs"
-@ApiBearerAuth() // ✅ Add Swagger Authorization header
+@ApiBearerAuth()
 @Controller('test-runs')
-@UseGuards(JwtAuthGuard) // ✅ Protect all routes with JWT authentication
+@UseGuards(JwtAuthGuard)
 export class TestRunController {
   constructor(private readonly testRunService: TestRunService) {}
 
@@ -95,8 +95,8 @@ export class TestRunController {
     description: 'Retrieve a specific test run by its ID',
   })
   @ApiParam({ name: 'id', description: 'ID of the test run', example: 1 }) // Describe the parameter
-  findOne(@Param('id') id: number) {
-    return this.testRunService.findOne(Number(id));
+  findOne(@Param('id') id: string) {
+    return this.testRunService.findOne(id);
   }
 
   @Patch(':id')
@@ -113,7 +113,7 @@ export class TestRunController {
     type: UpdateTestRunDto,
     description: 'Payload to update the test run',
   })
-  update(@Param('id') id: number, @Body() updateTestRunDto: UpdateTestRunDto) {
+  update(@Param('id') id: string, @Body() updateTestRunDto: UpdateTestRunDto) {
     return this.testRunService.update(id, updateTestRunDto);
   }
 
@@ -127,7 +127,7 @@ export class TestRunController {
     description: 'ID of the test run to delete',
     example: 1,
   })
-  remove(@Param('id') id: number) {
-    return this.testRunService.remove(Number(id));
+  remove(@Param('id') id: string) {
+    return this.testRunService.remove(id);
   }
 }
