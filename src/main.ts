@@ -41,12 +41,14 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT || 3000;
-  await app.listen(port);
+  const host = process.env.HOST || '0.0.0.0'; // Default to `0.0.0.0` for external accessibility
 
-  logger.log(`🚀 Application is running on: http://localhost:${port}/api/docs`);
-  logger.log(
-    `📄 Swagger JSON available at: http://localhost:${port}/api/docs/json`,
-  );
+  await app.listen(port, host);
+
+  const appUrl = process.env.APP_URL || `http://localhost:${port}`;
+
+  logger.log(`🚀 Application is running at: ${appUrl}/api/docs`);
+  logger.log(`📄 Swagger JSON available at: ${appUrl}/api/docs/json`);
 }
 
 bootstrap();

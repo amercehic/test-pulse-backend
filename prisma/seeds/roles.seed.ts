@@ -1,12 +1,8 @@
-import { Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
-const logger = new Logger('Seed:Roles');
-
 export default async function seedRoles(prisma: PrismaClient) {
-  logger.log('🔹 Seeding roles...');
-  await prisma.role.createMany({
-    data: [
+  try {
+    const roles = [
       { name: 'viewer', description: 'Can view all resources' },
       {
         name: 'member',
@@ -14,7 +10,19 @@ export default async function seedRoles(prisma: PrismaClient) {
       },
       { name: 'admin', description: 'Can manage test runs and users' },
       { name: 'super', description: 'Full access to everything' },
-    ],
-  });
-  logger.log('✅ Roles seeded successfully');
+    ];
+
+    for (const role of roles) {
+      await prisma.role.upsert({
+        where: { name: role.name },
+        update: {}, // Do nothing if it exists
+        create: role,
+      });
+    }
+
+    console.log('✅ Default roles seeded successfully');
+  } catch (error) {
+    console.error('❌ Error seeding roles:', error);
+    process.exit(1); // Exit with failure code
+  }
 }

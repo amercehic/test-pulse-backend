@@ -1,19 +1,13 @@
 import { Logger } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
-import seedOrganizations from '@db/seeds/organizations.seed';
-import seedPermissions from '@db/seeds/permissions.seed';
 import seedRoles from '@db/seeds/roles.seed';
-import seedUsers from '@db/seeds/users.seed';
 
 const prisma = new PrismaClient();
 const logger = new Logger('Seed');
 
 async function main() {
   logger.log('🌱 Starting database seeding...');
-  await seedPermissions(prisma);
   await seedRoles(prisma);
-  await seedOrganizations(prisma);
-  await seedUsers(prisma);
   logger.log('✅ Seeding complete!');
 }
 
