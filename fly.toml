@@ -3,23 +3,24 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 #
 
-app = 'test-pulse-backend'
-primary_region = 'otp'
+app = "test-pulse-backend"
+primary_region = "otp"
 
 [build]
 
 [deploy]
-  release_command = 'npx prisma migrate deploy'
+  # Chain the commands to run migrations, then seed
+  release_command = "sh -c 'npx prisma migrate deploy && yarn seed'"
 
 [http_service]
   internal_port = 3000
   force_https = true
-  auto_stop_machines = 'stop'
+  auto_stop_machines = "stop"
   auto_start_machines = true
   min_machines_running = 0
-  processes = ['app']
+  processes = ["app"]
 
 [[vm]]
-  memory = '1gb'
-  cpu_kind = 'shared'
+  memory = "1gb"
+  cpu_kind = "shared"
   cpus = 1
