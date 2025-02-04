@@ -23,6 +23,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User registered successfully' })
   @ApiResponse({ status: 400, description: 'Validation error' })
+  @ApiResponse({ status: 409, description: 'User already exists' })
   async register(@Body() registerUserDto: RegisterUserDto) {
     return this.authService.register(registerUserDto);
   }
@@ -30,6 +31,7 @@ export class AuthController {
   @Post('login')
   @ApiOperation({ summary: 'Login a user' })
   @ApiResponse({ status: 200, description: 'User logged in successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() loginUserDto: LoginUserDto) {
     return this.authService.login(loginUserDto);
@@ -40,7 +42,8 @@ export class AuthController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin', 'super')
   @ApiOperation({ summary: 'Assign a role to a user' })
-  @ApiResponse({ status: 200, description: 'Role assigned successfully' })
+  @ApiResponse({ status: 201, description: 'Role assigned successfully' })
+  @ApiResponse({ status: 400, description: 'Validation error' })
   @ApiResponse({ status: 404, description: 'User or role not found' })
   @ApiResponse({ status: 409, description: 'User already has this role' })
   async assignRole(@Body() assignRoleDto: AssignRoleDto) {
