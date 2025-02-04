@@ -27,7 +27,18 @@ export class InvitationService {
    * @throws ConflictException if user already exists or has pending invite
    */
   async inviteUser(inviteUserDto: InviteUserDto, adminId: string) {
-    const { email, roleId } = inviteUserDto;
+    const { email, roleName } = inviteUserDto;
+
+    // Find role by name
+    const role = await this.prisma.role.findUnique({
+      where: { name: roleName },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`Role '${roleName}' not found`);
+    }
+
+    const roleId = role.id; // ✅ Convert role name to UUID
 
     // Check if admin exists and has organization
     const admin = await this.prisma.user.findUnique({
@@ -70,7 +81,7 @@ export class InvitationService {
       data: {
         email,
         organizationId: admin.organizationId,
-        roleId,
+        roleId, // ✅ Now using role UUID found from the role name
         token,
         status: 'pending',
         expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -184,7 +195,18 @@ export class InvitationService {
    * @returns Updated invitation record
    * @throws NotFoundException if invitation is not found
    */
-  async updateInvitation(token: string, roleId: string) {
+  async updateInvitation(token: string, roleName: string) {
+    // Find role by name
+    const role = await this.prisma.role.findUnique({
+      where: { name: roleName },
+    });
+
+    if (!role) {
+      throw new NotFoundException(`Role '${roleName}' not found`);
+    }
+
+    const roleId = role.id; // ✅ Convert role name to UUID
+
     const invite = await this.prisma.invitation.findUnique({
       where: { token },
     });

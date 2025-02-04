@@ -92,13 +92,18 @@ export class InvitationController {
   @Roles('admin', 'super')
   @ApiOperation({ summary: 'Update an invitation (e.g., changing role)' })
   @ApiParam({ name: 'token', description: 'The invitation token' })
-  @ApiQuery({ name: 'roleId', required: true, description: 'New role ID' })
+  @ApiQuery({
+    name: 'roleName',
+    required: true,
+    description: 'New role name (admin, viewer, member)',
+  })
   @ApiResponse({ status: 200, description: 'Invitation updated successfully' })
   @ApiResponse({ status: 404, description: 'Invitation not found' })
+  @ApiResponse({ status: 400, description: 'Invalid role name' })
   async updateInvitation(
     @Param('token') token: string,
-    @Query('roleId') roleId: string, // Changed from number to string
+    @Query('roleName') roleName: string,
   ) {
-    return this.invitationService.updateInvitation(token, roleId);
+    return this.invitationService.updateInvitation(token, roleName);
   }
 }

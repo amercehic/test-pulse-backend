@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsInt } from 'class-validator';
+import { IsEmail, IsIn, IsString } from 'class-validator';
 
 export class InviteUserDto {
   @ApiProperty({
@@ -10,9 +10,10 @@ export class InviteUserDto {
   email: string;
 
   @ApiProperty({
-    example: 2,
-    description: 'ID of the role assigned to the user upon accepting',
+    example: 'admin',
+    description: 'Role name assigned to the user (admin, viewer, member)',
   })
-  @IsInt()
-  roleId: string;
+  @IsString()
+  @IsIn(['admin', 'viewer', 'member'], { message: 'Invalid role name' })
+  roleName: string;
 }
