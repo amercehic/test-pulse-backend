@@ -30,7 +30,7 @@ jobs:
 
     env:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      DATABASE_URL: "postgres://test_user:test_password@localhost:5432/test_db"
+      DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db"
 
     steps:
       # Checkout the code
@@ -57,9 +57,17 @@ jobs:
           done
           echo "Database is ready."
 
-      # Run database migrations (if applicable)
-      - name: Run Migrations
-        run: yarn db:migrate # Change this based on your migration command
+      # Generate Prisma Client
+      - name: Generate Prisma Client
+        run: yarn prisma generate
+
+      # Run Prisma Migrations
+      - name: Run Prisma Migrations
+        run: yarn prisma migrate deploy
+
+      # Seed the Database
+      - name: Seed Database
+        run: yarn seed
 
       # Run Linter
       - name: Run Linter
