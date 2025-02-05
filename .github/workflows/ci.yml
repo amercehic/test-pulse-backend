@@ -15,7 +15,8 @@ jobs:
 
     env:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DATABASE_URL: "postgres://test_pulse_backend:SlCW1roDVMYV2UN@[fdaa:f:267e:a7b:1ad:3d7b:defa:2]:5432/test_pulse_backend?sslmode=require"
+
 
     steps:
       # Checkout the code
