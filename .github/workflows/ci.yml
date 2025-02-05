@@ -13,10 +13,24 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test_user -d test_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      DATABASE_URL: "postgres://test_pulse_backend:SlCW1roDVMYV2UN@[fdaa:f:267e:a7b:1ad:3d7b:defa:2]:5432/test_pulse_backend?sslmode=require"
-
+      DATABASE_URL: "postgres://test_user:test_password@localhost:5432/test_db"
 
     steps:
       # Checkout the code
@@ -33,6 +47,19 @@ jobs:
       # Install dependencies
       - name: Install dependencies
         run: yarn install --frozen-lockfile
+
+      # Wait for PostgreSQL to be ready
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for database..."
+            sleep 2
+          done
+          echo "Database is ready."
+
+      # Run database migrations (if applicable)
+      - name: Run Migrations
+        run: yarn db:migrate # Change this based on your migration command
 
       # Run Linter
       - name: Run Linter
