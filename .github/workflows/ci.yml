@@ -35,7 +35,11 @@ jobs:
 
       # Run Unit Tests
       - name: Run Unit Tests
-        run: yarn test
+        run: yarn test:unit
+
+      # Run E2E Tests
+      - name: Run E2E Tests
+        run: yarn test:e2e
 
       # Build the Application
       - name: Build Application

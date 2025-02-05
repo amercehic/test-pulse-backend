@@ -158,15 +158,25 @@ describe('TestRunService', () => {
         status: 'failed',
       };
 
-      const updatedTestRun = {
+      const existingTestRun = {
         id,
+        name: 'Original Run 1',
+        status: 'passed',
+      };
+
+      const updatedTestRun = {
+        ...existingTestRun,
         ...updateDto,
       };
 
+      prisma.testRun.findUnique.mockResolvedValue(existingTestRun);
       prisma.testRun.update.mockResolvedValue(updatedTestRun);
 
       const result = await service.update(id, updateDto);
 
+      expect(prisma.testRun.findUnique).toHaveBeenCalledWith({
+        where: { id },
+      });
       expect(prisma.testRun.update).toHaveBeenCalledWith({
         where: { id },
         data: updateDto,
@@ -182,6 +192,12 @@ describe('TestRunService', () => {
         status: 'passed',
       };
 
+      prisma.testRun.findUnique.mockResolvedValue({
+        id,
+        name: 'Original Run',
+        status: 'failed',
+      });
+
       prisma.testRun.update.mockRejectedValue(new Error('Database error'));
 
       await expect(service.update(id, updateDto)).rejects.toThrow(
@@ -194,10 +210,18 @@ describe('TestRunService', () => {
     it('should delete a test run successfully', async () => {
       const id = randomUUID();
 
+      prisma.testRun.findUnique.mockResolvedValue({
+        id,
+        name: 'Test Run to Delete',
+      });
+
       prisma.testRun.delete.mockResolvedValue({ id });
 
       await service.remove(id);
 
+      expect(prisma.testRun.findUnique).toHaveBeenCalledWith({
+        where: { id },
+      });
       expect(prisma.testRun.delete).toHaveBeenCalledWith({
         where: { id },
       });
@@ -206,15 +230,18 @@ describe('TestRunService', () => {
     it('should throw NotFoundException if test run does not exist', async () => {
       const id = randomUUID();
 
-      prisma.testRun.delete.mockRejectedValue({ code: 'P2025' });
+      prisma.testRun.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove(id)).rejects.toThrow(
-        `TestRun with ID ${id} not found`,
-      );
+      await expect(service.remove(id)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw an error if Prisma delete fails with other errors', async () => {
       const id = randomUUID();
+
+      prisma.testRun.findUnique.mockResolvedValue({
+        id,
+        name: 'Test Run',
+      });
 
       prisma.testRun.delete.mockRejectedValue(new Error('Database error'));
 
