@@ -14,6 +14,10 @@ import { LoginUserDto } from '@/auth/dto/login-user.dto';
 import { RegisterUserDto } from '@/auth/dto/register-user.dto';
 import { AssignRoleDto } from '@/roles/dto/assign-role.dto';
 
+/**
+ * Service handling authentication-related operations including user registration,
+ * login, and role management.
+ */
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -24,11 +28,11 @@ export class AuthService {
   ) {}
 
   /**
-   * Registers a new user in the system.
-   * @param registerUserDto - DTO containing user registration details.
-   * @returns A new user and a JWT token.
-   * @throws ConflictException if the user already exists.
-   * @throws InternalServerErrorException if an error occurs during registration.
+   * Registers a new user with their organization and assigns admin role.
+   * @param registerUserDto - Data transfer object containing user registration details
+   * @returns Object containing the created user and JWT token
+   * @throws ConflictException when user with email already exists
+   * @throws InternalServerErrorException when registration process fails
    */
   async register(registerUserDto: RegisterUserDto) {
     const { email, password } = registerUserDto;
@@ -48,12 +52,10 @@ export class AuthService {
 
     return this.prisma.$transaction(async (prisma) => {
       try {
-        // ✅ Ensure organization is created
         const organization = await prisma.organization.create({
           data: { name: `${email}'s Organization` },
         });
 
-        // ✅ Ensure user is created
         const user = await prisma.user.create({
           data: {
             email,
@@ -62,7 +64,6 @@ export class AuthService {
           },
         });
 
-        // ✅ Ensure role lookup does not fail
         const adminRole = await prisma.role.findUnique({
           where: { name: 'admin' },
         });
@@ -93,10 +94,10 @@ export class AuthService {
   }
 
   /**
-   * Authenticates a user and generates a JWT token upon successful login.
-   * @param loginUserDto - Data transfer object containing user login details (email, password).
-   * @returns An object containing the authenticated user and a JWT token.
-   * @throws UnauthorizedException if the email or password is invalid.
+   * Authenticates a user and generates a JWT token.
+   * @param loginUserDto - Data transfer object containing login credentials
+   * @returns Object containing the user and JWT token
+   * @throws UnauthorizedException when credentials are invalid
    */
   async login(loginUserDto: LoginUserDto) {
     const { email, password } = loginUserDto;
@@ -119,11 +120,11 @@ export class AuthService {
   }
 
   /**
-   * Generates a JWT token for a user.
-   * @param userId - The ID of the user.
-   * @param email - The email of the user.
-   * @returns A JWT token as a string.
-   * @throws InternalServerErrorException if token generation fails.
+   * Generates a JWT token for authenticated users.
+   * @param userId - Unique identifier of the user
+   * @param email - Email address of the user
+   * @returns JWT token string
+   * @throws InternalServerErrorException when token generation fails
    */
   private generateToken(userId: string, email: string): string {
     try {
@@ -139,11 +140,11 @@ export class AuthService {
   }
 
   /**
-   * Assigns a role to a user in the system.
-   * @param assignRoleDto - Data transfer object containing user ID and role name.
-   * @returns An object containing a success message.
-   * @throws NotFoundException if the user or role is not found.
-   * @throws ConflictException if the user already has the specified role.
+   * Assigns a role to a user.
+   * @param assignRoleDto - Data transfer object containing user ID and role name
+   * @returns Object containing success message
+   * @throws NotFoundException when user or role is not found
+   * @throws ConflictException when user already has the specified role
    */
   async assignRole(assignRoleDto: AssignRoleDto) {
     const { userId, roleName } = assignRoleDto;
@@ -153,7 +154,6 @@ export class AuthService {
       throw new NotFoundException(`User with ID ${userId} not found`);
     }
 
-    // Fetch the role by the ENUM name instead of a string
     const role = await this.prisma.role.findUnique({
       where: { name: roleName },
     });

@@ -1,16 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
-
-import { RoleEnum } from '../roles.enum';
+import { IsNotEmpty, IsString, Matches } from 'class-validator';
 
 export class AssignRoleDto {
-  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000' })
-  @IsNotEmpty({ message: 'User ID is required' })
-  @IsUUID('4', { message: 'User ID must be a valid UUID' })
+  @ApiProperty({
+    example: '123e4567-e89b-12d3-a456-426614174000',
+    description: 'User ID to assign the role to',
+  })
+  @IsNotEmpty()
+  @Matches(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/, {
+    message: 'Invalid UUID format',
+  })
   userId: string;
 
-  @ApiProperty({ example: RoleEnum.ADMIN, enum: RoleEnum })
-  @IsNotEmpty({ message: 'Role name is required' })
-  @IsEnum(RoleEnum, { message: 'Role name must be a valid enum value' })
-  roleName: RoleEnum;
+  @ApiProperty({ example: 'admin', description: 'Role name to assign' })
+  @IsNotEmpty()
+  @IsString()
+  roleName: string;
 }

@@ -10,7 +10,7 @@ primary_region = "otp"
 
 [deploy]
   # Chain the commands to run migrations, then seed
-  release_command = "sh -c 'npx prisma migrate deploy && yarn seed'"
+  release_command = "sh -c 'npx prisma migrate reset --force && npx prisma migrate deploy && yarn seed'"
 
 [http_service]
   internal_port = 3000

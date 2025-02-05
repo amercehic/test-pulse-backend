@@ -13,6 +13,25 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test_user -d test_db"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      DATABASE_URL: "postgresql://test_user:test_password@localhost:5432/test_db"
+
     steps:
       # Checkout the code
       - name: Checkout code
@@ -29,13 +48,38 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # Wait for PostgreSQL to be ready
+      - name: Wait for PostgreSQL
+        run: |
+          until pg_isready -h localhost -p 5432 -U test_user; do
+            echo "Waiting for database..."
+            sleep 2
+          done
+          echo "Database is ready."
+
+      # Generate Prisma Client
+      - name: Generate Prisma Client
+        run: yarn prisma generate
+
+      # Run Prisma Migrations
+      - name: Run Prisma Migrations
+        run: yarn prisma migrate deploy
+
+      # Seed the Database
+      - name: Seed Database
+        run: yarn seed
+
       # Run Linter
       - name: Run Linter
         run: yarn lint
 
       # Run Unit Tests
       - name: Run Unit Tests
-        run: yarn test
+        run: yarn test:unit
+
+      # Run E2E Tests
+      - name: Run E2E Tests
+        run: yarn test:e2e
 
       # Build the Application
       - name: Build Application

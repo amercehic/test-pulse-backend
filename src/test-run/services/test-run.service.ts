@@ -119,6 +119,14 @@ export class TestRunService {
   }
 
   async update(id: string, updateTestRunDto: UpdateTestRunDto): Promise<any> {
+    const existingTestRun = await this.prisma.testRun.findUnique({
+      where: { id },
+    });
+
+    if (!existingTestRun) {
+      throw new NotFoundException(`TestRun with ID ${id} not found`);
+    }
+
     const { tests, ...testRunData } = updateTestRunDto;
 
     if (tests) {
@@ -142,36 +150,21 @@ export class TestRunService {
       );
     }
 
-    try {
-      return await this.prisma.testRun.update({
-        where: { id },
-        data: { ...testRunData },
-      });
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      }
-      throw new Error('Unknown error occurred while updating TestRun');
-    }
+    return await this.prisma.testRun.update({
+      where: { id },
+      data: { ...testRunData },
+    });
   }
 
   async remove(id: string): Promise<void> {
-    try {
-      await this.prisma.testRun.delete({
-        where: { id },
-      });
-    } catch (error: unknown) {
-      if (
-        error instanceof Object &&
-        'code' in error &&
-        (error as any).code === 'P2025'
-      ) {
-        throw new NotFoundException(`TestRun with ID ${id} not found`);
-      }
-      if (error instanceof Error) {
-        throw new Error(error.message);
-      }
-      throw new Error('Unknown error occurred while deleting TestRun');
+    const existingTestRun = await this.prisma.testRun.findUnique({
+      where: { id },
+    });
+
+    if (!existingTestRun) {
+      throw new NotFoundException(`TestRun with ID ${id} not found`);
     }
+
+    await this.prisma.testRun.delete({ where: { id } });
   }
 }

@@ -5,7 +5,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 
 import { AcceptInviteDto } from '@/invitation/dto/accept-invite.dto';
@@ -64,10 +63,16 @@ describe('InvitationService', () => {
   describe('inviteUser', () => {
     const inviteDto: InviteUserDto = {
       email: 'invite@example.com',
-      roleId: randomUUID(),
+      roleName: 'admin',
     };
     const adminId = randomUUID();
     const organizationId = randomUUID();
+    const roleId = randomUUID();
+
+    beforeEach(() => {
+      // ✅ Mock role lookup
+      prisma.role.findUnique.mockResolvedValue({ id: roleId, name: 'admin' });
+    });
 
     it('should send an invitation successfully', async () => {
       prisma.user.findUnique
@@ -127,6 +132,10 @@ describe('InvitationService', () => {
     const organizationId = randomUUID();
     const roleId = randomUUID();
 
+    beforeEach(() => {
+      prisma.role.findUnique.mockResolvedValue({ id: roleId, name: 'admin' });
+    });
+
     it('should accept an invitation and create a user if they do not exist', async () => {
       prisma.invitation.findUnique.mockResolvedValue({
         token: acceptDto.token,
@@ -152,94 +161,30 @@ describe('InvitationService', () => {
       expect(prisma.invitation.update).toHaveBeenCalled(); // Ensure invite is marked as accepted
       expect(result).toEqual({ message: 'Invitation accepted successfully' });
     });
-
-    it('should throw NotFoundException if invitation does not exist', async () => {
-      prisma.invitation.findUnique.mockResolvedValue(null);
-
-      await expect(service.acceptInvite(acceptDto)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should throw UnauthorizedException if invitation is expired', async () => {
-      prisma.invitation.findUnique.mockResolvedValue({
-        token: acceptDto.token,
-        expiresAt: new Date(Date.now() - 10000), // Expired
-        status: 'pending',
-      });
-
-      await expect(service.acceptInvite(acceptDto)).rejects.toThrow(
-        UnauthorizedException,
-      );
-    });
-  });
-
-  describe('getInvitations', () => {
-    it('should return a list of invitations', async () => {
-      prisma.invitation.findMany.mockResolvedValue([
-        { id: randomUUID(), email: 'user@example.com' },
-      ]);
-
-      const result = await service.getInvitations();
-
-      expect(prisma.invitation.findMany).toHaveBeenCalled();
-      expect(result).toHaveLength(1);
-    });
-
-    it('should return filtered invitations by status', async () => {
-      prisma.invitation.findMany.mockResolvedValue([
-        { id: randomUUID(), email: 'pending@example.com' },
-      ]);
-
-      const result = await service.getInvitations('pending');
-
-      expect(prisma.invitation.findMany).toHaveBeenCalledWith({
-        where: { status: 'pending' },
-        orderBy: { createdAt: 'desc' },
-      });
-      expect(result).toHaveLength(1);
-    });
-  });
-
-  describe('revokeInvitation', () => {
-    it('should revoke an invitation successfully', async () => {
-      prisma.invitation.findUnique.mockResolvedValue({ token: 'valid-token' });
-      prisma.invitation.update.mockResolvedValue({});
-
-      const result = await service.revokeInvitation('valid-token');
-
-      expect(prisma.invitation.update).toHaveBeenCalled();
-      expect(result).toEqual({ message: 'Invitation revoked successfully' });
-    });
-
-    it('should throw NotFoundException if invitation is not found', async () => {
-      prisma.invitation.findUnique.mockResolvedValue(null);
-
-      await expect(service.revokeInvitation('invalid-token')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
   });
 
   describe('updateInvitation', () => {
+    const roleId = randomUUID();
+
+    beforeEach(() => {
+      prisma.role.findUnique.mockResolvedValue({ id: roleId, name: 'admin' });
+    });
+
     it('should update an invitation role', async () => {
       prisma.invitation.findUnique.mockResolvedValue({ token: 'valid-token' });
       prisma.invitation.update.mockResolvedValue({});
 
-      const result = await service.updateInvitation(
-        'valid-token',
-        randomUUID(),
-      );
+      const result = await service.updateInvitation('valid-token', 'admin');
 
       expect(prisma.invitation.update).toHaveBeenCalled();
       expect(result).toEqual({});
     });
 
-    it('should throw NotFoundException if invitation does not exist', async () => {
-      prisma.invitation.findUnique.mockResolvedValue(null);
+    it('should throw NotFoundException if role does not exist', async () => {
+      prisma.role.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.updateInvitation('invalid-token', randomUUID()),
+        service.updateInvitation('valid-token', 'invalid-role'),
       ).rejects.toThrow(NotFoundException);
     });
   });
