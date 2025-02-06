@@ -21,10 +21,8 @@ describe('TestRunService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
-    test: {
-      findFirst: jest.fn(),
-      update: jest.fn(),
-      create: jest.fn(),
+    testExecution: {
+      findMany: jest.fn(),
     },
   };
 
@@ -49,8 +47,6 @@ describe('TestRunService', () => {
       const createDto: CreateTestRunDto = {
         name: 'Test Run 1',
         triggeredBy: 'CI/CD Pipeline',
-        status: 'passed',
-        duration: 120,
         commit: 'abc123',
         branch: 'main',
         framework: 'Playwright',
@@ -59,17 +55,25 @@ describe('TestRunService', () => {
         platform: 'Windows',
       };
 
-      const createdTestRun = { id: randomUUID(), ...createDto, tests: [] };
+      const createdTestRun = {
+        id: randomUUID(),
+        ...createDto,
+        status: 'queued',
+        duration: 0,
+      };
 
+      // The service calls prisma.testRun.create with the data containing defaults.
       prisma.testRun.create.mockResolvedValue(createdTestRun);
 
       const result = await service.create(createDto);
 
       expect(prisma.testRun.create).toHaveBeenCalledWith({
-        data: createDto,
-        include: { tests: true },
+        data: {
+          ...createDto,
+          status: 'queued',
+          duration: 0,
+        },
       });
-
       expect(result).toEqual(createdTestRun);
     });
 
@@ -77,8 +81,6 @@ describe('TestRunService', () => {
       const createDto: CreateTestRunDto = {
         name: 'Test Run 2',
         triggeredBy: 'Manual Trigger',
-        status: 'failed',
-        duration: 180,
         commit: 'xyz123',
         branch: 'develop',
         framework: 'Jest',
@@ -99,8 +101,8 @@ describe('TestRunService', () => {
       const query: TestRunQueryDto = {};
 
       const mockData = [
-        { id: randomUUID(), name: 'Run 1', tests: [] },
-        { id: randomUUID(), name: 'Run 2', tests: [] },
+        { id: randomUUID(), name: 'Run 1', testExecutions: [] },
+        { id: randomUUID(), name: 'Run 2', testExecutions: [] },
       ];
       const mockTotal = 2;
 
@@ -124,22 +126,36 @@ describe('TestRunService', () => {
   describe('findOne', () => {
     it('should retrieve a test run by ID', async () => {
       const id = randomUUID();
+      // Note: The service uses "testExecutions" property in the returned testRun.
       const mockTestRun = {
         id,
         name: 'Run 1',
-        tests: [{ id: randomUUID(), name: 'Test 1', previousRun: null }],
+        testExecutions: [
+          {
+            id: randomUUID(),
+            testId: randomUUID(),
+            startedAt: new Date(),
+          },
+        ],
       };
 
       prisma.testRun.findUnique.mockResolvedValue(mockTestRun);
+      // Also mock prisma.testExecution.findMany for previous executions:
+      prisma.testExecution.findMany.mockResolvedValue([]);
 
       const result = await service.findOne(id);
 
       expect(prisma.testRun.findUnique).toHaveBeenCalledWith({
         where: { id },
-        include: { tests: { include: { previousRun: true } } },
+        include: { testExecutions: { include: { test: true } } },
       });
-
-      expect(result).toEqual(mockTestRun);
+      expect(result).toEqual({
+        ...mockTestRun,
+        testExecutions: mockTestRun.testExecutions.map((execution: any) => ({
+          ...execution,
+          previousExecutions: [],
+        })),
+      });
     });
 
     it('should throw NotFoundException if test run does not exist', async () => {
@@ -154,7 +170,6 @@ describe('TestRunService', () => {
     it('should update a test run', async () => {
       const id = randomUUID();
       const updateDto: UpdateTestRunDto = {
-        name: 'Updated Run 1',
         status: 'failed',
       };
 
@@ -188,7 +203,6 @@ describe('TestRunService', () => {
     it('should throw an error if Prisma update fails', async () => {
       const id = randomUUID();
       const updateDto: UpdateTestRunDto = {
-        name: 'Run 3',
         status: 'passed',
       };
 

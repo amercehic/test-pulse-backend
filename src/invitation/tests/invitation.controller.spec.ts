@@ -2,6 +2,7 @@ import { PrismaService } from '@db/prisma.service';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
+import { v4 as uuidv4 } from 'uuid';
 
 import { AppModule } from '@/app.module';
 
@@ -12,9 +13,12 @@ describe('InvitationController (e2e)', () => {
   let adminId: string;
   let inviteToken: string;
 
+  // Update admin user to include names
   const testAdmin = {
     email: `admin+${Date.now()}@example.com`,
     password: 'Admin1234!',
+    firstName: 'Admin',
+    lastName: 'User',
   };
 
   beforeAll(async () => {
@@ -51,14 +55,18 @@ describe('InvitationController (e2e)', () => {
     await app.close();
   });
 
-  const registerUser = async (user: { email: string; password: string }) => {
+  const registerUser = async (user: any) => {
     return request(app.getHttpServer()).post('/auth/register').send(user);
   };
 
-  const loginUser = async (user: { email: string; password: string }) => {
+  const loginUser = async (user: any) => {
+    const data = {
+      email: user.email,
+      password: user.password,
+    };
     const response = await request(app.getHttpServer())
       .post('/auth/login')
-      .send(user);
+      .send(data);
 
     return response.body.token;
   };
@@ -77,6 +85,7 @@ describe('InvitationController (e2e)', () => {
   });
 
   describe('Invitations', () => {
+    // Use a unique invitee email
     const inviteeEmail = `invitee+${Date.now()}@example.com`;
 
     it('should invite a user', async () => {
@@ -84,7 +93,6 @@ describe('InvitationController (e2e)', () => {
         .post('/invitations')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ email: inviteeEmail, roleName: 'viewer' });
-
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('token');
       inviteToken = response.body.token;
@@ -95,7 +103,6 @@ describe('InvitationController (e2e)', () => {
         .post('/invitations')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ email: inviteeEmail, roleName: 'viewer' });
-
       expect(response.status).toBe(409);
     });
 
@@ -104,18 +111,13 @@ describe('InvitationController (e2e)', () => {
         .post('/invitations')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ email: testAdmin.email, roleName: 'viewer' });
-
       expect(response.status).toBe(409);
     });
 
     it('should return 401 if no token is provided', async () => {
       const response = await request(app.getHttpServer())
         .post('/invitations')
-        .send({
-          email: `new+${Date.now()}@example.com`,
-          roleName: 'viewer',
-        });
-
+        .send({ email: `new+${Date.now()}@example.com`, roleName: 'viewer' });
       expect(response.status).toBe(401);
     });
 
@@ -124,15 +126,19 @@ describe('InvitationController (e2e)', () => {
         .post('/invitations')
         .set('Authorization', 'Bearer InvalidToken')
         .send({ email: `new+${Date.now()}@example.com`, roleName: 'viewer' });
-
       expect(response.status).toBe(403);
     });
 
     it('should accept an invitation', async () => {
+      // Now include firstName and lastName for acceptance
       const response = await request(app.getHttpServer())
         .post('/invitations/accept')
-        .send({ token: inviteToken, password: 'InviteePass123!' });
-
+        .send({
+          token: inviteToken,
+          password: 'InviteePass123!',
+          firstName: 'Invitee',
+          lastName: 'User',
+        });
       expect(response.status).toBe(201);
       expect(response.body.message).toBe('Invitation accepted successfully');
     });
@@ -140,8 +146,12 @@ describe('InvitationController (e2e)', () => {
     it('should return 404 for invalid or expired invitation', async () => {
       const response = await request(app.getHttpServer())
         .post('/invitations/accept')
-        .send({ token: 'invalid-token', password: 'SomePass123!' });
-
+        .send({
+          token: 'invalid-token',
+          password: 'SomePass123!',
+          firstName: 'Fake',
+          lastName: 'User',
+        });
       expect(response.status).toBe(404);
     });
 
@@ -149,7 +159,6 @@ describe('InvitationController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .get('/invitations')
         .set('Authorization', `Bearer ${accessToken}`);
-
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBe(true);
     });
@@ -160,13 +169,10 @@ describe('InvitationController (e2e)', () => {
         .post('/invitations')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ email: newInvitee, roleName: 'viewer' });
-
       const revokeToken = inviteResponse.body.token;
-
       const response = await request(app.getHttpServer())
         .delete(`/invitations/${revokeToken}`)
         .set('Authorization', `Bearer ${accessToken}`);
-
       expect(response.status).toBe(200);
     });
 
@@ -174,7 +180,6 @@ describe('InvitationController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .delete('/invitations/invalid-token')
         .set('Authorization', `Bearer ${accessToken}`);
-
       expect(response.status).toBe(404);
     });
 
@@ -184,14 +189,11 @@ describe('InvitationController (e2e)', () => {
         .post('/invitations')
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ email: newInvitee, roleName: 'viewer' });
-
       const updateToken = inviteResponse.body.token;
-
       const response = await request(app.getHttpServer())
         .patch(`/invitations/${updateToken}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .query({ roleName: 'admin' });
-
       expect(response.status).toBe(200);
     });
 
@@ -200,7 +202,6 @@ describe('InvitationController (e2e)', () => {
         .patch('/invitations/invalid-token')
         .set('Authorization', `Bearer ${accessToken}`)
         .query({ roleName: 'admin' });
-
       expect(response.status).toBe(404);
     });
   });

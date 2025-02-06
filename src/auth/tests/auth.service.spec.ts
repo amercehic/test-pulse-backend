@@ -76,9 +76,12 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
+    // Updated RegisterUserDto with firstName and lastName
     const registerDto: RegisterUserDto = {
       email: 'test@example.com',
       password: 'password123',
+      firstName: 'John',
+      lastName: 'Doe',
     };
 
     it('should successfully register a new user', async () => {

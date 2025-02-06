@@ -2,7 +2,6 @@ import { PrismaService } from '@db/prisma.service';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { v4 as uuidv4 } from 'uuid';
 
 import { AppModule } from '@/app.module';
 
@@ -12,9 +11,12 @@ describe('AuthController (e2e)', () => {
   let accessToken: string;
   let userId: string;
 
+  // Update testUser to include firstName and lastName.
   const testUser = {
     email: `test+${Date.now()}@example.com`,
     password: 'Test1234!',
+    firstName: 'Test',
+    lastName: 'User',
   };
 
   beforeAll(async () => {
@@ -33,9 +35,10 @@ describe('AuthController (e2e)', () => {
     await app.init();
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
+    // Clean up any prior test users
     await prisma.user.deleteMany({ where: { email: testUser.email } });
 
-    // Create test roles if they don't exist
+    // Create roles if not exist
     const roles = ['admin', 'super'];
     for (const roleName of roles) {
       await prisma.role.upsert({
@@ -51,14 +54,18 @@ describe('AuthController (e2e)', () => {
     await app.close();
   });
 
-  const registerUser = async (user: { email: string; password: string }) => {
+  const registerUser = async (user: any) => {
     return request(app.getHttpServer()).post('/auth/register').send(user);
   };
 
-  const loginUser = async (user: { email: string; password: string }) => {
+  const loginUser = async (user: any) => {
+    const data = {
+      email: user.email,
+      password: user.password,
+    };
     const response = await request(app.getHttpServer())
       .post('/auth/login')
-      .send(user);
+      .send(data);
 
     return response.body.token;
   };
@@ -80,14 +87,18 @@ describe('AuthController (e2e)', () => {
     const response = await registerUser({
       email: 'invalid-email',
       password: 'ValidPass123!',
+      firstName: 'Invalid',
+      lastName: 'Email',
     });
     expect(response.status).toBe(400);
   });
 
   it('should return 400 for weak password', async () => {
     const response = await registerUser({
-      email: 'test@example.com',
+      email: 'test2@example.com',
       password: '123',
+      firstName: 'Weak',
+      lastName: 'Pass',
     });
     expect(response.status).toBe(400);
   });
@@ -98,11 +109,10 @@ describe('AuthController (e2e)', () => {
   });
 
   it('should return 401 for invalid password', async () => {
-    const response = await loginUser({
-      email: testUser.email,
-      password: 'WrongPass123!',
-    });
-    expect(response).toBeUndefined();
+    const response = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: testUser.email, password: 'WrongPass123!' });
+    expect(response.status).toBe(401);
   });
 
   it('should return 401 for unregistered email', async () => {
@@ -124,7 +134,6 @@ describe('AuthController (e2e)', () => {
       .post('/auth/assign-role')
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ userId, roleName: 'super' });
-
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty(
       'message',
@@ -133,7 +142,7 @@ describe('AuthController (e2e)', () => {
   });
 
   it('should return 404 if user does not exist', async () => {
-    const nonExistentId = uuidv4();
+    const nonExistentId = '00000000-0000-0000-0000-000000000000';
     const response = await request(app.getHttpServer())
       .post('/auth/assign-role')
       .set('Authorization', `Bearer ${accessToken}`)

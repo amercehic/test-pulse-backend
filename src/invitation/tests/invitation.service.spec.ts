@@ -7,6 +7,7 @@ import {
 import { Test, TestingModule } from '@nestjs/testing';
 import { randomUUID } from 'crypto';
 
+import { AuthService } from '@/auth/services/auth.service';
 import { AcceptInviteDto } from '@/invitation/dto/accept-invite.dto';
 import { InviteUserDto } from '@/invitation/dto/invite.dto';
 import { InvitationService } from '@/invitation/services/invitation.service';
@@ -15,6 +16,14 @@ import { InvitationService } from '@/invitation/services/invitation.service';
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashedPassword123'),
 }));
+
+// Create a mock AuthService
+const mockAuthService = {
+  createUser: jest.fn().mockResolvedValue({
+    id: 'user-uuid',
+    email: 'newuser@example.com',
+  }),
+};
 
 describe('InvitationService', () => {
   let service: InvitationService;
@@ -45,10 +54,8 @@ describe('InvitationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InvitationService,
-        {
-          provide: PrismaService,
-          useValue: mockPrismaService,
-        },
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: AuthService, useValue: mockAuthService }, // Provide AuthService mock
       ],
     }).compile();
 
@@ -124,11 +131,13 @@ describe('InvitationService', () => {
   });
 
   describe('acceptInvite', () => {
+    // Updated AcceptInviteDto with firstName and lastName
     const acceptDto: AcceptInviteDto = {
       token: 'valid-token',
       password: 'password123',
+      firstName: 'John',
+      lastName: 'Doe',
     };
-    const userId = randomUUID();
     const organizationId = randomUUID();
     const roleId = randomUUID();
 
@@ -146,17 +155,20 @@ describe('InvitationService', () => {
         expiresAt: new Date(Date.now() + 10000),
       });
       prisma.user.findUnique.mockResolvedValue(null);
-      prisma.user.create.mockResolvedValue({
-        id: userId,
-        email: 'newuser@example.com',
-      });
+      // The call to createUser is mocked in our mockAuthService
       prisma.userRole.findFirst.mockResolvedValue(null);
       prisma.userRole.create.mockResolvedValue({});
       prisma.invitation.update.mockResolvedValue({ status: 'accepted' });
 
       const result = await service.acceptInvite(acceptDto);
 
-      expect(prisma.user.create).toHaveBeenCalled(); // Ensure user is created
+      expect(mockAuthService.createUser).toHaveBeenCalledWith({
+        firstName: acceptDto.firstName,
+        lastName: acceptDto.lastName,
+        email: 'newuser@example.com',
+        password: expect.any(String), // hashed password string
+        organizationId,
+      });
       expect(prisma.userRole.create).toHaveBeenCalled(); // Ensure role is assigned
       expect(prisma.invitation.update).toHaveBeenCalled(); // Ensure invite is marked as accepted
       expect(result).toEqual({ message: 'Invitation accepted successfully' });

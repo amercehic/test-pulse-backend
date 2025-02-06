@@ -8,41 +8,64 @@ datasource db {
 }
 
 model TestRun {
-  id             String   @id @default(uuid())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id             String          @id @default(uuid())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   name           String
   triggeredBy    String
-  status         String
-  duration       Float
+  status         String          @default("queued") // queued, running, completed, cancelled
+  duration       Float?
   commit         String
   branch         String
   framework      String
   browser        String
   browserVersion String
   platform       String
-  tests          Test[]
+  testExecutions TestExecution[]
+
+  @@index([status])
 }
 
 model Test {
-  id            String  @id @default(uuid())
-  name          String
-  status        String
-  duration      Float
-  logs          String
+  id          String          @id @default(uuid())
+  name        String          @unique
+  description String?
+  suite       String? // Optional grouping (e.g., 'Authentication')
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  executions  TestExecution[] @relation("TestExecutions")
+
+  @@index([name])
+}
+
+model TestExecution {
+  id            String    @id @default(uuid())
   testRunId     String
-  previousRunId String?
-  previousRun   Test?   @relation("PreviousRun", fields: [previousRunId], references: [id])
-  nextRun       Test[]  @relation("PreviousRun")
-  testRun       TestRun @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testId        String
+  attempt       Int       @default(1) // Tracks multiple attempts per test case
+  status        String    @default("queued") // queued, running, passed, failed, skipped, cancelled
+  duration      Float?
+  logs          String?
+  errorMessage  String?
+  stackTrace    String?
+  screenshotUrl String? // Optional screenshot storage
+  videoUrl      String? // Optional video storage
+  startedAt     DateTime?
+  completedAt   DateTime?
+
+  testRun TestRun @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  test    Test    @relation("TestExecutions", fields: [testId], references: [id], onDelete: Cascade) // Explicit relation name
+
+  @@index([status])
+  @@index([testId, testRunId]) // Optimized lookup for test executions
 }
 
 model TestHistory {
-  id       String @id @default(uuid())
+  id       String  @id @default(uuid())
   name     String
   status   String
-  duration Float
-  logs     String
+  duration Float?
+  logs     String?
 }
 
 model Organization {
@@ -56,10 +79,12 @@ model Organization {
 
 model User {
   id             String           @id @default(uuid())
+  firstName      String
+  lastName       String
   email          String           @unique
   password       String
   createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  updatedAt      DateTime         @default(now())
   organizationId String
   organization   Organization     @relation("OrganizationUsers", fields: [organizationId], references: [id], onDelete: Cascade)
   permissions    UserPermission[] @relation("UserToPermissions")
