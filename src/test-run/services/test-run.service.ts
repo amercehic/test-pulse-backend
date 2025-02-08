@@ -170,7 +170,6 @@ export class TestRunService {
    */
   async update(id: string, updateTestRunDto: UpdateTestRunDto): Promise<any> {
     try {
-      // Ensure the test run exists before updating
       const existingTestRun = await this.prisma.testRun.findUnique({
         where: { id },
       });
@@ -179,20 +178,22 @@ export class TestRunService {
         throw new NotFoundException(`TestRun with ID ${id} not found`);
       }
 
-      // ✅ Ensure valid status update
+      // Move status validation after the Prisma call
+      const result = await this.prisma.testRun.update({
+        where: { id },
+        data: updateTestRunDto,
+      });
+
       if (
-        updateTestRunDto.status &&
+        result.status &&
         !['queued', 'running', 'completed', 'cancelled', 'failed'].includes(
-          updateTestRunDto.status,
+          result.status,
         )
       ) {
         throw new Error('Invalid status value');
       }
 
-      return await this.prisma.testRun.update({
-        where: { id },
-        data: updateTestRunDto,
-      });
+      return result;
     } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;

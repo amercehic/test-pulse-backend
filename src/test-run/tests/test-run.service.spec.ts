@@ -203,7 +203,7 @@ describe('TestRunService', () => {
     it('should throw an error if Prisma update fails', async () => {
       const id = randomUUID();
       const updateDto: UpdateTestRunDto = {
-        status: 'passed',
+        status: 'completed', // Use valid status to bypass validation
       };
 
       prisma.testRun.findUnique.mockResolvedValue({
@@ -216,6 +216,29 @@ describe('TestRunService', () => {
 
       await expect(service.update(id, updateDto)).rejects.toThrow(
         'Database error',
+      );
+    });
+
+    it('should throw error for invalid status', async () => {
+      const id = randomUUID();
+      const updateDto: UpdateTestRunDto = {
+        status: 'invalid_status',
+      };
+
+      prisma.testRun.findUnique.mockResolvedValue({
+        id,
+        name: 'Original Run',
+        status: 'failed',
+      });
+
+      prisma.testRun.update.mockResolvedValue({
+        id,
+        name: 'Original Run',
+        status: 'invalid_status',
+      });
+
+      await expect(service.update(id, updateDto)).rejects.toThrow(
+        'Invalid status value',
       );
     });
   });
