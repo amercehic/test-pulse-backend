@@ -1,86 +1,96 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
-  IsIn,
+  IsArray,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
 
-import { CreateTestDto } from '@/test-run/dto/create-test.dto';
+export class EphemeralTestDto {
+  @ApiProperty({
+    example: 'Login works',
+    description: 'Name of the ephemeral test',
+  })
+  @IsNotEmpty()
+  @IsString()
+  name: string;
+
+  @ApiPropertyOptional({ example: 'Authentication', description: 'Suite name' })
+  @IsOptional()
+  @IsString()
+  suite?: string;
+
+  @ApiPropertyOptional({
+    example: 'Check if user can login with valid credentials',
+    description: 'Description of the ephemeral test',
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
+}
 
 export class CreateTestRunDto {
   @ApiProperty({ description: 'Name of the test run' })
-  @IsNotEmpty({ message: 'Name is required' })
-  @IsString({ message: 'Name must be a string' })
+  @IsNotEmpty()
+  @IsString()
   name: string;
 
-  @ApiProperty({
-    description: 'Triggered by (e.g., CI/CD)',
-    example: 'CI/CD Pipeline',
-  })
-  @IsNotEmpty({ message: 'TriggeredBy is required' })
-  @IsString({ message: 'TriggeredBy must be a string' })
+  @ApiProperty({ description: 'Triggered by (e.g., CI/CD Pipeline)' })
+  @IsNotEmpty()
+  @IsString()
   triggeredBy: string;
 
-  @ApiProperty({ description: 'Status of the test run', example: 'passed' })
-  @IsNotEmpty({ message: 'Status is required' })
-  @IsIn(['passed', 'failed'], {
-    message: 'Status must be either "passed" or "failed"',
-  })
-  status: 'passed' | 'failed';
-
-  @ApiProperty({
-    description: 'Total duration of the test run in seconds',
-    example: 120,
-  })
-  @IsNotEmpty({ message: 'Duration is required' })
-  @IsNumber({}, { message: 'Duration must be a number' })
-  duration: number;
-
   @ApiProperty({ description: 'Commit hash associated with the test run' })
-  @IsNotEmpty({ message: 'Commit is required' })
-  @IsString({ message: 'Commit must be a string' })
+  @IsNotEmpty()
+  @IsString()
   commit: string;
 
   @ApiProperty({ description: 'Branch name associated with the test run' })
-  @IsNotEmpty({ message: 'Branch is required' })
-  @IsString({ message: 'Branch must be a string' })
+  @IsNotEmpty()
+  @IsString()
   branch: string;
 
   @ApiProperty({
+    example: 'Cypress',
     description: 'Framework used for the test run',
-    example: 'Playwright',
   })
-  @IsNotEmpty({ message: 'Framework is required' })
-  @IsString({ message: 'Framework must be a string' })
+  @IsNotEmpty()
+  @IsString()
   framework: string;
 
   @ApiProperty({
-    description: 'Browser used for the test run',
     example: 'Chrome',
+    description: 'Browser used for the test run',
   })
-  @IsNotEmpty({ message: 'Browser is required' })
-  @IsString({ message: 'Browser must be a string' })
+  @IsNotEmpty()
+  @IsString()
   browser: string;
 
-  @ApiProperty({ description: 'Browser version', example: '96.0' })
-  @IsNotEmpty({ message: 'Browser version is required' })
-  @IsString({ message: 'Browser version must be a string' })
+  @ApiProperty({
+    example: '95.0',
+    description: 'Browser version used for the test run',
+  })
+  @IsNotEmpty()
+  @IsString()
   browserVersion: string;
 
   @ApiProperty({
+    example: 'Ubuntu 20.04',
     description: 'Platform used for the test run',
-    example: 'Windows',
   })
-  @IsNotEmpty({ message: 'Platform is required' })
-  @IsString({ message: 'Platform must be a string' })
+  @IsNotEmpty()
+  @IsString()
   platform: string;
 
-  @ApiProperty({
-    description: 'List of individual tests in the test run',
-    type: [CreateTestDto],
+  @ApiPropertyOptional({
+    type: [EphemeralTestDto],
+    description: 'Optional array of ephemeral tests to automatically create',
   })
   @IsOptional()
-  tests?: CreateTestDto[];
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EphemeralTestDto)
+  tests?: EphemeralTestDto[];
 }

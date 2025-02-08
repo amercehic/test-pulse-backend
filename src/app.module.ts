@@ -4,7 +4,9 @@ import { ConfigModule } from '@nestjs/config';
 
 import { AuthModule } from '@/auth/auth.module';
 import { InvitationModule } from '@/invitation/invitation.module';
+import { StorageModule } from '@/storage/storage.module';
 import { TestRunModule } from '@/test-run/test-run.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -14,6 +16,7 @@ import { TestRunModule } from '@/test-run/test-run.module';
     TestRunModule,
     AuthModule,
     InvitationModule,
+    StorageModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],

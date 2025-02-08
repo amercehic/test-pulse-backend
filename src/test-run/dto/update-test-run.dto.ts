@@ -1,5 +1,9 @@
-import { PartialType } from '@nestjs/mapped-types';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsIn, IsOptional } from 'class-validator';
 
-import { CreateTestRunDto } from '@/test-run/dto/create-test-run.dto';
-
-export class UpdateTestRunDto extends PartialType(CreateTestRunDto) {}
+export class UpdateTestRunDto {
+  @ApiProperty({ description: 'Status of the test run', example: 'completed' })
+  @IsOptional()
+  @IsIn(['queued', 'running', 'completed', 'cancelled', 'failed'])
+  status?: string;
+}

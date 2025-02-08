@@ -1,53 +1,75 @@
 import { PrismaService } from '@db/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { CreateTestRunDto } from '@/test-run/dto/create-test-run.dto';
-import { TestRunQueryDto } from '@/test-run/dto/test-run-query.dto';
-import { UpdateTestRunDto } from '@/test-run/dto/update-test-run.dto';
+import { CreateTestRunDto, EphemeralTestDto } from '../dto/create-test-run.dto';
+import { TestRunQueryDto } from '../dto/test-run-query.dto';
+import { UpdateTestRunDto } from '../dto/update-test-run.dto';
 
+/**
+ * Service for managing test runs and their executions
+ */
 @Injectable()
 export class TestRunService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createTestRunDto: CreateTestRunDto): Promise<any> {
-    const { tests, ...testRunData } = createTestRunDto;
+  /**
+   * Creates a new test run with optional test executions
+   * @param dto - The data transfer object containing test run and test execution details
+   * @returns The created test run with its associated test executions
+   * @throws Error if creation fails
+   */
+  async create(dto: CreateTestRunDto) {
+    const { tests, ...runData } = dto;
 
     try {
-      return await this.prisma.testRun.create({
+      const createdRun = await this.prisma.testRun.create({
         data: {
-          ...testRunData,
-          tests: tests?.length
-            ? {
-                create: await Promise.all(
-                  tests.map(async (test) => {
-                    const previousTest = await this.prisma.test.findFirst({
-                      where: { name: test.name },
-                      orderBy: { id: 'desc' },
-                    });
-
-                    return {
-                      ...test,
-                      id: test.id?.toString(),
-                      previousRunId: previousTest?.id || null,
-                    };
-                  }),
-                ),
-              }
-            : undefined,
+          ...runData,
+          status: 'queued',
+          duration: 0,
         },
-        include: { tests: true },
       });
-    } catch (error: unknown) {
+
+      if (tests && tests.length > 0) {
+        const executionData = tests.map((test: EphemeralTestDto) => ({
+          testRunId: createdRun.id,
+          name: test.name,
+          suite: test.suite,
+          description: test.description,
+          attempt: 1,
+          status: 'queued',
+        }));
+
+        await this.prisma.testExecution.createMany({ data: executionData });
+      }
+
+      return this.prisma.testRun.findUnique({
+        where: { id: createdRun.id },
+        include: { testExecutions: true },
+      });
+    } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
       }
-      throw new Error('Unknown error occurred while creating TestRun');
+      throw error;
     }
   }
 
-  async findAll(
-    query: TestRunQueryDto,
-  ): Promise<{ data: any[]; total: number }> {
+  /**
+   * Retrieves all test runs with pagination and filtering options
+   * @param query - Query parameters for filtering and pagination
+   * @param query.status - Filter by test run status
+   * @param query.framework - Filter by testing framework
+   * @param query.browser - Filter by browser
+   * @param query.platform - Filter by platform
+   * @param query.sortBy - Field to sort by (default: 'createdAt')
+   * @param query.order - Sort order ('asc' or 'desc', default: 'desc')
+   * @param query.page - Page number (default: 1)
+   * @param query.limit - Items per page (default: 10)
+   * @returns Object containing test runs data and total count
+   * @throws Error if query fails
+   */
+  async findAll(query: TestRunQueryDto) {
     const {
       status,
       framework,
@@ -57,7 +79,7 @@ export class TestRunService {
       order = 'desc',
       page = 1,
       limit = 10,
-    } = query || {};
+    } = query;
 
     const skip = (Number(page) - 1) * Number(limit);
     const take = Number(limit);
@@ -83,88 +105,110 @@ export class TestRunService {
           orderBy: { [sortBy]: order.toLowerCase() as 'asc' | 'desc' },
           skip,
           take,
-          include: { tests: true },
+          include: { testExecutions: true },
         }),
         this.prisma.testRun.count({ where }),
       ]);
 
       return { data, total };
-    } catch (error: unknown) {
+    } catch (error) {
       if (error instanceof Error) {
         throw new Error(error.message);
       }
-      throw new Error('Unknown error occurred while fetching TestRuns');
+      throw error;
     }
   }
 
-  async findOne(id: string): Promise<any> {
+  /**
+   * Retrieves a single test run by ID
+   * @param id - The ID of the test run to find
+   * @returns The test run with its associated test executions
+   * @throws NotFoundException if test run is not found
+   * @throws Error if query fails
+   */
+  async findOne(id: string) {
     try {
-      const testRun = await this.prisma.testRun.findUnique({
+      const run = await this.prisma.testRun.findUnique({
         where: { id },
-        include: { tests: { include: { previousRun: true } } },
+        include: { testExecutions: true },
       });
-      if (!testRun) {
+
+      if (!run) {
         throw new NotFoundException(`TestRun with ID ${id} not found`);
       }
-      return testRun;
-    } catch (error: unknown) {
+      return run;
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      } else if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Updates a test run by ID
+   * @param id - The ID of the test run to update
+   * @param dto - The data transfer object containing update data
+   * @returns The updated test run
+   * @throws NotFoundException if test run is not found
+   * @throws Error if update fails or status is invalid
+   */
+  async update(id: string, dto: UpdateTestRunDto) {
+    try {
+      const existing = await this.prisma.testRun.findUnique({ where: { id } });
+      if (!existing) {
+        throw new NotFoundException(`TestRun with ID ${id} not found`);
+      }
+
+      const result = await this.prisma.testRun.update({
+        where: { id },
+        data: dto,
+      });
+
+      if (
+        result.status &&
+        !['queued', 'running', 'completed', 'cancelled', 'failed'].includes(
+          result.status,
+        )
+      ) {
+        throw new Error('Invalid status value');
+      }
+
+      return result;
+    } catch (error) {
       if (error instanceof NotFoundException) {
         throw error;
       }
       if (error instanceof Error) {
         throw new Error(error.message);
       }
-      throw new Error('Unknown error occurred while fetching a TestRun');
+      throw error;
     }
   }
 
-  async update(id: string, updateTestRunDto: UpdateTestRunDto): Promise<any> {
-    const existingTestRun = await this.prisma.testRun.findUnique({
-      where: { id },
-    });
-
-    if (!existingTestRun) {
-      throw new NotFoundException(`TestRun with ID ${id} not found`);
+  /**
+   * Removes a test run by ID
+   * @param id - The ID of the test run to remove
+   * @throws NotFoundException if test run is not found
+   * @throws Error if deletion fails
+   */
+  async remove(id: string) {
+    try {
+      const existing = await this.prisma.testRun.findUnique({ where: { id } });
+      if (!existing) {
+        throw new NotFoundException(`TestRun with ID ${id} not found`);
+      }
+      await this.prisma.testRun.delete({ where: { id } });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw error;
     }
-
-    const { tests, ...testRunData } = updateTestRunDto;
-
-    if (tests) {
-      await Promise.all(
-        tests.map(async (test) => {
-          if (test.id) {
-            await this.prisma.test.update({
-              where: { id: test.id.toString() },
-              data: { ...test, id: test.id.toString() },
-            });
-          } else {
-            await this.prisma.test.create({
-              data: {
-                ...test,
-                id: test.id?.toString(),
-                testRunId: id,
-              },
-            });
-          }
-        }),
-      );
-    }
-
-    return await this.prisma.testRun.update({
-      where: { id },
-      data: { ...testRunData },
-    });
-  }
-
-  async remove(id: string): Promise<void> {
-    const existingTestRun = await this.prisma.testRun.findUnique({
-      where: { id },
-    });
-
-    if (!existingTestRun) {
-      throw new NotFoundException(`TestRun with ID ${id} not found`);
-    }
-
-    await this.prisma.testRun.delete({ where: { id } });
   }
 }

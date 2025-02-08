@@ -1,23 +1,25 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateTestDto {
-  @IsOptional()
-  id?: number; // Optional ID for updates
-
-  @ApiProperty({ description: 'Name of the individual test' })
+  @ApiProperty({
+    description: 'Test name',
+    example: 'Login with valid credentials',
+  })
+  @IsNotEmpty()
   @IsString()
   name: string;
 
-  @ApiProperty({ description: 'Status of the test', example: 'passed' })
-  @IsIn(['passed', 'failed'])
-  status: 'passed' | 'failed';
-
-  @ApiProperty({ description: 'Duration of the test in seconds', example: 30 })
-  @IsNumber()
-  duration: number;
-
-  @ApiProperty({ description: 'Logs for the test' })
+  @ApiProperty({ description: 'Test suite name', example: 'Authentication' })
+  @IsOptional()
   @IsString()
-  logs: string;
+  suite?: string;
+
+  @ApiProperty({
+    description: 'Test description',
+    example: 'Ensure login works with correct credentials',
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
 }
