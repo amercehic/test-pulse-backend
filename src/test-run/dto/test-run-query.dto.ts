@@ -4,7 +4,7 @@ import { IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
 
 export class TestRunQueryDto {
   @ApiPropertyOptional({
-    description: 'Status of the test run. Can be either "passed" or "failed".',
+    description: 'Status of the test run. For example "passed" or "failed".',
     enum: ['passed', 'failed'],
     example: 'passed',
   })
@@ -51,7 +51,7 @@ export class TestRunQueryDto {
   })
   @IsOptional()
   @IsIn(['asc', 'desc'])
-  order?: 'asc' | 'desc'; // Lowercase to align with Prisma
+  order?: 'asc' | 'desc';
 
   @ApiPropertyOptional({
     description: 'Page number for pagination. Must be a positive integer.',

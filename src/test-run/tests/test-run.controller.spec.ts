@@ -12,7 +12,6 @@ describe('TestRunController (e2e)', () => {
   let accessToken: string;
   let testRunId: string;
 
-  // Update test user with names
   const testUser = {
     email: `user+${Date.now()}@example.com`,
     password: 'Test1234!',
@@ -72,7 +71,6 @@ describe('TestRunController (e2e)', () => {
   });
 
   describe('Test Runs', () => {
-    // CreateTestRunDto includes: name, triggeredBy, commit, branch, framework, browser, browserVersion, platform.
     const testRunData = {
       name: 'Sample Test Run',
       triggeredBy: 'CI/CD Pipeline',
@@ -89,14 +87,12 @@ describe('TestRunController (e2e)', () => {
         .post('/test-runs')
         .set('Authorization', `Bearer ${accessToken}`)
         .send(testRunData);
-      // Expect 201 Created
       expect(response.status).toBe(201);
       expect(response.body).toHaveProperty('id');
       testRunId = response.body.id;
     });
 
     it('should return 400 for invalid test run payload', async () => {
-      // Missing required fields, e.g. framework is an empty string.
       const response = await request(app.getHttpServer())
         .post('/test-runs')
         .set('Authorization', `Bearer ${accessToken}`)
@@ -140,19 +136,15 @@ describe('TestRunController (e2e)', () => {
         .patch(`/test-runs/${testRunId}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ status: 'failed' });
-
-      // ✅ Expecting 200 instead of 400
       expect(response.status).toBe(200);
       expect(response.body.status).toBe('failed');
     });
 
     it('should return 404 when updating a non-existent test run', async () => {
       const response = await request(app.getHttpServer())
-        .patch(`/test-runs/${uuidv4()}`) // Use a random UUID
+        .patch(`/test-runs/${uuidv4()}`)
         .set('Authorization', `Bearer ${accessToken}`)
         .send({ status: 'failed' });
-
-      // ✅ Expecting 404 instead of 400
       expect(response.status).toBe(404);
     });
 
@@ -160,7 +152,7 @@ describe('TestRunController (e2e)', () => {
       const response = await request(app.getHttpServer())
         .patch(`/test-runs/${testRunId}`)
         .set('Authorization', `Bearer ${accessToken}`)
-        .send({ status: '' }); // Invalid status
+        .send({ status: '' });
       expect(response.status).toBe(400);
     });
 

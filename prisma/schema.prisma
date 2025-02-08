@@ -7,13 +7,19 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+//
+// ────────────────────────────────────────────────────────────────────
+//   >>> TEST RUN & TEST EXECUTION (EPHEMERAL) MODELS
+// ────────────────────────────────────────────────────────────────────
+//
+
 model TestRun {
   id             String          @id @default(uuid())
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   name           String
   triggeredBy    String
-  status         String          @default("queued") // queued, running, completed, cancelled
+  status         String          @default("queued") 
   duration       Float?
   commit         String
   branch         String
@@ -21,52 +27,45 @@ model TestRun {
   browser        String
   browserVersion String
   platform       String
+
   testExecutions TestExecution[]
 
   @@index([status])
 }
 
-model Test {
-  id          String          @id @default(uuid())
-  name        String          @unique
-  description String?
-  suite       String? // Optional grouping (e.g., 'Authentication')
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  executions  TestExecution[] @relation("TestExecutions")
-
-  @@index([name])
-}
-
 model TestExecution {
   id            String    @id @default(uuid())
   testRunId     String
-  testId        String
-  attempt       Int       @default(1) // Tracks multiple attempts per test case
-  status        String    @default("queued") // queued, running, passed, failed, skipped, cancelled
+
+  // "Ephemeral" test info
+  name          String
+  suite         String?
+  description   String?
+
+  // Attempt number (retry)
+  attempt       Int       @default(1)
+
+  // Execution status + info
+  status        String    @default("queued") // queued, running, passed, failed, etc.
   duration      Float?
   logs          String?
   errorMessage  String?
   stackTrace    String?
-  screenshotUrl String? // Optional screenshot storage
-  videoUrl      String? // Optional video storage
+  screenshotUrl String?
+  videoUrl      String?
   startedAt     DateTime?
   completedAt   DateTime?
 
-  testRun TestRun @relation(fields: [testRunId], references: [id], onDelete: Cascade)
-  test    Test    @relation("TestExecutions", fields: [testId], references: [id], onDelete: Cascade) // Explicit relation name
+  testRun       TestRun   @relation(fields: [testRunId], references: [id], onDelete: Cascade)
 
   @@index([status])
-  @@index([testId, testRunId]) // Optimized lookup for test executions
 }
 
-model TestHistory {
-  id       String  @id @default(uuid())
-  name     String
-  status   String
-  duration Float?
-  logs     String?
-}
+//
+// ────────────────────────────────────────────────────────────────────
+//   >>> ORGANIZATION / USER / ROLE / PERMISSION MODELS
+// ────────────────────────────────────────────────────────────────────
+//
 
 model Organization {
   id          String       @id @default(uuid())
@@ -126,6 +125,7 @@ model UserRole {
   id     String @id @default(uuid())
   userId String
   roleId String
+
   role   Role   @relation("RoleToUsers", fields: [roleId], references: [id], onDelete: Cascade)
   user   User   @relation("RoleToUsers", fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -134,6 +134,7 @@ model UserPermission {
   id           String     @id @default(uuid())
   userId       String
   permissionId String
+
   permission   Permission @relation("UserToPermissions", fields: [permissionId], references: [id], onDelete: Cascade)
   user         User       @relation("UserToPermissions", fields: [userId], references: [id], onDelete: Cascade)
 }
