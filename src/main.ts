@@ -1,3 +1,4 @@
+// main.ts (or bootstrap.ts)
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -9,10 +10,8 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
-  // Set global prefix for API
   app.setGlobalPrefix('api/v1');
 
-  // Register the global exception filter
   app.useGlobalFilters(new AllExceptionsFilter());
 
   // Enable global validation
@@ -24,6 +23,13 @@ async function bootstrap() {
     }),
   );
 
+  // Enable CORS using an environment variable
+  // If process.env.CORS_ORIGIN is set, only that origin is allowed.
+  // Otherwise, you can provide a default value.
+  app.enableCors({
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3001',
+  });
+
   // Build the Swagger configuration
   const config = new DocumentBuilder()
     .setTitle('Test Pulse API')
@@ -32,13 +38,10 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
 
-  // Create the Swagger document
   const document = SwaggerModule.createDocument(app, config);
 
-  // Setup Swagger UI at /api/v1/docs
   SwaggerModule.setup('api/docs', app, document);
 
-  // Serve the raw JSON documentation at /api/v1/api-json
   app.getHttpAdapter().get('/api/docs/api-json', (req, res) => {
     res.json(document);
   });

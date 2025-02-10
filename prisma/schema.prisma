@@ -7,19 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-//
-// ────────────────────────────────────────────────────────────────────
-//   >>> TEST RUN & TEST EXECUTION (EPHEMERAL) MODELS
-// ────────────────────────────────────────────────────────────────────
-//
-
 model TestRun {
-  id             String          @id @default(uuid())
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id             String       @id @default(uuid())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
   name           String
   triggeredBy    String
-  status         String          @default("queued") 
+  status         String       @default("queued")
   duration       Float?
   commit         String
   branch         String
@@ -27,26 +21,24 @@ model TestRun {
   browser        String
   browserVersion String
   platform       String
-
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
   testExecutions TestExecution[]
 
   @@index([status])
 }
 
 model TestExecution {
-  id            String    @id @default(uuid())
-  testRunId     String
+  id        String   @id @default(uuid())
+  testRunId String
 
-  // "Ephemeral" test info
-  name          String
-  suite         String?
-  description   String?
+  name        String
+  suite       String?
+  description String?
 
-  // Attempt number (retry)
-  attempt       Int       @default(1)
+  attempt Int @default(1)
 
-  // Execution status + info
-  status        String    @default("queued") // queued, running, passed, failed, etc.
+  status        String    @default("queued")
   duration      Float?
   logs          String?
   errorMessage  String?
@@ -56,16 +48,10 @@ model TestExecution {
   startedAt     DateTime?
   completedAt   DateTime?
 
-  testRun       TestRun   @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testRun TestRun @relation(fields: [testRunId], references: [id], onDelete: Cascade)
 
   @@index([status])
 }
-
-//
-// ────────────────────────────────────────────────────────────────────
-//   >>> ORGANIZATION / USER / ROLE / PERMISSION MODELS
-// ────────────────────────────────────────────────────────────────────
-//
 
 model Organization {
   id          String       @id @default(uuid())
@@ -74,6 +60,8 @@ model Organization {
   updatedAt   DateTime     @updatedAt
   invitations Invitation[]
   users       User[]       @relation("OrganizationUsers")
+  apiKeys     ApiKey[]     
+  TestRun     TestRun[]
 }
 
 model User {
@@ -88,6 +76,7 @@ model User {
   organization   Organization     @relation("OrganizationUsers", fields: [organizationId], references: [id], onDelete: Cascade)
   permissions    UserPermission[] @relation("UserToPermissions")
   roles          UserRole[]       @relation("RoleToUsers")
+  apiKeys        ApiKey[]        
 }
 
 model Role {
@@ -126,17 +115,17 @@ model UserRole {
   userId String
   roleId String
 
-  role   Role   @relation("RoleToUsers", fields: [roleId], references: [id], onDelete: Cascade)
-  user   User   @relation("RoleToUsers", fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation("RoleToUsers", fields: [roleId], references: [id], onDelete: Cascade)
+  user User @relation("RoleToUsers", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserPermission {
-  id           String     @id @default(uuid())
+  id           String @id @default(uuid())
   userId       String
   permissionId String
 
-  permission   Permission @relation("UserToPermissions", fields: [permissionId], references: [id], onDelete: Cascade)
-  user         User       @relation("UserToPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  permission Permission @relation("UserToPermissions", fields: [permissionId], references: [id], onDelete: Cascade)
+  user       User       @relation("UserToPermissions", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Invitation {
@@ -151,4 +140,16 @@ model Invitation {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   role         Role         @relation("RoleToInvitations", fields: [roleId], references: [id], onDelete: Cascade)
+}
+
+model ApiKey {
+  id             String       @id @default(uuid())
+  name           String
+  key            String       @unique
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  lastUsedAt     DateTime?
+  createdBy      String
+  user           User         @relation(fields: [createdBy], references: [id])
 }

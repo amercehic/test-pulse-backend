@@ -15,7 +15,7 @@ export default async function seedRoles(prisma: PrismaClient) {
     for (const role of roles) {
       await prisma.role.upsert({
         where: { name: role.name },
-        update: {}, // Do nothing if it exists
+        update: {},
         create: role,
       });
     }
@@ -23,6 +23,6 @@ export default async function seedRoles(prisma: PrismaClient) {
     console.log('✅ Default roles seeded successfully');
   } catch (error) {
     console.error('❌ Error seeding roles:', error);
-    process.exit(1); // Exit with failure code
+    process.exit(1);
   }
 }

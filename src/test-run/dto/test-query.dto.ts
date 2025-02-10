@@ -26,7 +26,7 @@ export class TestQueryDto {
   })
   @IsOptional()
   @IsString()
-  sortBy?: string; // e.g., 'duration'
+  sortBy?: string;
 
   @ApiPropertyOptional({
     description: 'Order of sorting. Can be either "ASC" or "DESC".',

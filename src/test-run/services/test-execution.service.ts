@@ -105,7 +105,6 @@ export class TestExecutionService {
         include: { testExecutions: true },
       });
     } catch (error) {
-      // Rethrow the original error to preserve its type and message.
       throw error;
     }
   }

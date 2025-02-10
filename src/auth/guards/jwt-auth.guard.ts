@@ -9,7 +9,6 @@ import { AuthGuard } from '@nestjs/passport';
 export class JwtAuthGuard extends AuthGuard('jwt') {
   handleRequest(err: any, user: any, info: any) {
     if (err || !user) {
-      // ✅ Return 403 Forbidden for invalid or expired tokens
       if (
         info?.name === 'JsonWebTokenError' ||
         info?.name === 'TokenExpiredError'
@@ -17,7 +16,6 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         throw new ForbiddenException('Invalid or expired token');
       }
 
-      // ✅ Return 401 Unauthorized when token is missing
       throw new UnauthorizedException('Unauthorized access');
     }
 

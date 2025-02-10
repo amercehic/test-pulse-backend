@@ -1,7 +1,7 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
     moduleFileExtensions: ['js', 'json', 'ts'],
-    testRegex: '\\.controller\\.spec\\.ts$', // Runs only E2E tests in controllers
+    testRegex: '\\.controller\\.spec\\.ts$', 
     transform: {
       '^.+\\.ts$': 'ts-jest',
     },
@@ -9,7 +9,6 @@ module.exports = {
     coverageDirectory: './coverage/e2e',
     testEnvironment: 'node',
   
-    // Path aliases
     rootDir: 'src',
     moduleNameMapper: {
       '^@/(.*)$': '<rootDir>/$1',

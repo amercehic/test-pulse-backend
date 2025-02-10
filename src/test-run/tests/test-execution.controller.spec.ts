@@ -4,7 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
 
-import { AppModule } from '@/app.module'; // ili neki modul koji u sebi ima TestExecutionModule, AuthModule...
+import { AppModule } from '@/app.module';
 import { RetryTestsDto } from '@/test-run/dto/retry-tests.dto';
 
 describe('TestExecutionController (e2e)', () => {
@@ -142,11 +142,9 @@ describe('TestExecutionController (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send(retryDto);
 
-      expect(resp.status).toBe(201); // jer je to .post – možda 200, ovisi o vašoj default strategiji
-      // Vraća testRun s novim executionima
+      expect(resp.status).toBe(201);
       expect(resp.body.id).toBe(testRunId);
       expect(Array.isArray(resp.body.testExecutions)).toBe(true);
-      // Sada bi trebala postojati barem 2 zapisa (attempt=1 i attempt=2)
       const secondAttempt = resp.body.testExecutions.find(
         (exec: { attempt: number }) => exec.attempt === 2,
       );
@@ -156,7 +154,7 @@ describe('TestExecutionController (e2e)', () => {
     it('should return 404 if some testExecution IDs are invalid for that run', async () => {
       const retryDto: RetryTestsDto = {
         testRunId,
-        testExecutionIds: [uuidv4()], // random ID
+        testExecutionIds: [uuidv4()],
       };
       const resp = await request(app.getHttpServer())
         .post('/test-executions/retry')

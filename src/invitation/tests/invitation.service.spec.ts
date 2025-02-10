@@ -12,12 +12,10 @@ import { AcceptInviteDto } from '@/invitation/dto/accept-invite.dto';
 import { InviteUserDto } from '@/invitation/dto/invite.dto';
 import { InvitationService } from '@/invitation/services/invitation.service';
 
-// Mock bcrypt
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashedPassword123'),
 }));
 
-// Create a mock AuthService
 const mockAuthService = {
   createUser: jest.fn().mockResolvedValue({
     id: 'user-uuid',
@@ -55,7 +53,7 @@ describe('InvitationService', () => {
       providers: [
         InvitationService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: AuthService, useValue: mockAuthService }, // Provide AuthService mock
+        { provide: AuthService, useValue: mockAuthService },
       ],
     }).compile();
 
@@ -77,15 +75,14 @@ describe('InvitationService', () => {
     const roleId = randomUUID();
 
     beforeEach(() => {
-      // ✅ Mock role lookup
       prisma.role.findUnique.mockResolvedValue({ id: roleId, name: 'admin' });
     });
 
     it('should send an invitation successfully', async () => {
       prisma.user.findUnique
-        .mockResolvedValueOnce({ id: adminId, organizationId }) // Admin user
-        .mockResolvedValueOnce(null); // Invited user does not exist
-      prisma.invitation.findFirst.mockResolvedValue(null); // No pending invite
+        .mockResolvedValueOnce({ id: adminId, organizationId })
+        .mockResolvedValueOnce(null);
+      prisma.invitation.findFirst.mockResolvedValue(null);
       prisma.invitation.create.mockResolvedValue({ token: 'generated-token' });
 
       const result = await service.inviteUser(inviteDto, adminId);
@@ -93,7 +90,7 @@ describe('InvitationService', () => {
       expect(prisma.invitation.create).toHaveBeenCalled();
       expect(result).toEqual({
         message: 'Invitation sent successfully',
-        token: expect.stringMatching(/^[0-9a-fA-F-]{36}$/), // Ensure UUID format
+        token: expect.stringMatching(/^[0-9a-fA-F-]{36}$/),
       });
     });
 
@@ -110,8 +107,8 @@ describe('InvitationService', () => {
 
     it('should throw ConflictException if user already exists', async () => {
       prisma.user.findUnique
-        .mockResolvedValueOnce({ id: adminId, organizationId }) // Admin user
-        .mockResolvedValueOnce({ id: randomUUID() }); // User already exists
+        .mockResolvedValueOnce({ id: adminId, organizationId })
+        .mockResolvedValueOnce({ id: randomUUID() });
 
       await expect(service.inviteUser(inviteDto, adminId)).rejects.toThrow(
         ConflictException,
@@ -120,9 +117,9 @@ describe('InvitationService', () => {
 
     it('should throw ConflictException if user has a pending invite', async () => {
       prisma.user.findUnique
-        .mockResolvedValueOnce({ id: adminId, organizationId }) // Admin user
-        .mockResolvedValueOnce(null); // Invited user does not exist
-      prisma.invitation.findFirst.mockResolvedValue({ status: 'pending' }); // Pending invite exists
+        .mockResolvedValueOnce({ id: adminId, organizationId })
+        .mockResolvedValueOnce(null);
+      prisma.invitation.findFirst.mockResolvedValue({ status: 'pending' });
 
       await expect(service.inviteUser(inviteDto, adminId)).rejects.toThrow(
         ConflictException,
@@ -131,7 +128,6 @@ describe('InvitationService', () => {
   });
 
   describe('acceptInvite', () => {
-    // Updated AcceptInviteDto with firstName and lastName
     const acceptDto: AcceptInviteDto = {
       token: 'valid-token',
       password: 'password123',
@@ -155,7 +151,6 @@ describe('InvitationService', () => {
         expiresAt: new Date(Date.now() + 10000),
       });
       prisma.user.findUnique.mockResolvedValue(null);
-      // The call to createUser is mocked in our mockAuthService
       prisma.userRole.findFirst.mockResolvedValue(null);
       prisma.userRole.create.mockResolvedValue({});
       prisma.invitation.update.mockResolvedValue({ status: 'accepted' });
@@ -166,11 +161,11 @@ describe('InvitationService', () => {
         firstName: acceptDto.firstName,
         lastName: acceptDto.lastName,
         email: 'newuser@example.com',
-        password: expect.any(String), // hashed password string
+        password: expect.any(String),
         organizationId,
       });
-      expect(prisma.userRole.create).toHaveBeenCalled(); // Ensure role is assigned
-      expect(prisma.invitation.update).toHaveBeenCalled(); // Ensure invite is marked as accepted
+      expect(prisma.userRole.create).toHaveBeenCalled();
+      expect(prisma.invitation.update).toHaveBeenCalled();
       expect(result).toEqual({ message: 'Invitation accepted successfully' });
     });
   });

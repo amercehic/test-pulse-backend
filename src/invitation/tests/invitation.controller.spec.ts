@@ -2,7 +2,6 @@ import { PrismaService } from '@db/prisma.service';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { v4 as uuidv4 } from 'uuid';
 
 import { AppModule } from '@/app.module';
 
@@ -13,7 +12,6 @@ describe('InvitationController (e2e)', () => {
   let adminId: string;
   let inviteToken: string;
 
-  // Update admin user to include names
   const testAdmin = {
     email: `admin+${Date.now()}@example.com`,
     password: 'Admin1234!',
@@ -39,7 +37,6 @@ describe('InvitationController (e2e)', () => {
     prisma = moduleFixture.get<PrismaService>(PrismaService);
     await prisma.user.deleteMany({ where: { email: testAdmin.email } });
 
-    // Create test roles if they don't exist
     const roles = ['admin', 'viewer', 'member'];
     for (const roleName of roles) {
       await prisma.role.upsert({
@@ -85,7 +82,6 @@ describe('InvitationController (e2e)', () => {
   });
 
   describe('Invitations', () => {
-    // Use a unique invitee email
     const inviteeEmail = `invitee+${Date.now()}@example.com`;
 
     it('should invite a user', async () => {
@@ -130,7 +126,6 @@ describe('InvitationController (e2e)', () => {
     });
 
     it('should accept an invitation', async () => {
-      // Now include firstName and lastName for acceptance
       const response = await request(app.getHttpServer())
         .post('/invitations/accept')
         .send({

@@ -109,9 +109,7 @@ describe('TestExecutionService', () => {
       };
       const fakeTestRun = { id: 'run1' };
 
-      // First call returns the test run.
       prisma.testRun.findUnique.mockResolvedValueOnce(fakeTestRun);
-      // findMany returns only one execution even though two were requested.
       prisma.testExecution.findMany.mockResolvedValueOnce([
         {
           id: 'exec1',
@@ -198,34 +196,26 @@ describe('TestExecutionService', () => {
         ],
       };
 
-      // 1. Verify the test run exists.
       prisma.testRun.findUnique.mockResolvedValueOnce(fakeTestRun);
-      // 2. Return the old test executions.
       prisma.testExecution.findMany.mockResolvedValueOnce(oldExecutions);
-      // 3. Simulate successful creation of new executions.
       prisma.testExecution.createMany.mockResolvedValueOnce({
         count: newExecutionsData.length,
       });
-      // 4. Return the updated test run with new executions.
       prisma.testRun.findUnique.mockResolvedValueOnce(
         updatedTestRunWithExecutions,
       );
 
       const result = await service.retryTests(dto);
 
-      // First call for checking the test run
       expect(prisma.testRun.findUnique).toHaveBeenNthCalledWith(1, {
         where: { id: 'run1' },
       });
-      // Check if findMany was called with the correct filter.
       expect(prisma.testExecution.findMany).toHaveBeenCalledWith({
         where: { id: { in: ['exec1', 'exec2'] }, testRunId: 'run1' },
       });
-      // Verify createMany was called with the correct new execution data.
       expect(prisma.testExecution.createMany).toHaveBeenCalledWith({
         data: newExecutionsData,
       });
-      // Verify the final call to retrieve the updated test run.
       expect(prisma.testRun.findUnique).toHaveBeenNthCalledWith(2, {
         where: { id: 'run1' },
         include: { testExecutions: true },

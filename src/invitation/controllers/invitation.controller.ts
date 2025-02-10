@@ -43,7 +43,7 @@ export class InvitationController {
     description: 'User already exists or has a pending invite',
   })
   async inviteUser(@Body() inviteUserDto: InviteUserDto, @Req() req: Request) {
-    const adminId = (req.user as { userId: string }).userId; // Changed from number to string
+    const adminId = (req.user as { userId: string }).userId;
     return this.invitationService.inviteUser(inviteUserDto, adminId);
   }
 
