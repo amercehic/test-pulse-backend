@@ -15,7 +15,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { EitherAuthGuard } from '@/common/guards/either-auth.guard';
 
 import { RetryTestsDto } from '../dto/retry-tests.dto';
 import { TestExecutionService } from '../services/test-execution.service';
@@ -23,7 +23,7 @@ import { TestExecutionService } from '../services/test-execution.service';
 @ApiTags('Test Executions')
 @ApiBearerAuth()
 @Controller('test-executions')
-@UseGuards(JwtAuthGuard)
+@UseGuards(EitherAuthGuard)
 export class TestExecutionController {
   constructor(private readonly testExecutionService: TestExecutionService) {}
 
@@ -36,7 +36,7 @@ export class TestExecutionController {
 
   @Get(':testRunId/attempt/:attempt')
   @ApiOperation({
-    summary: 'Get a specific attempt within a test run (e.g. attempt=2).',
+    summary: 'Get a specific attempt within a test run (e.g., attempt=2).',
   })
   @ApiParam({
     name: 'testRunId',
@@ -44,7 +44,7 @@ export class TestExecutionController {
   })
   @ApiParam({
     name: 'attempt',
-    description: 'Attempt number (1,2,3...) for the test in that run',
+    description: 'Attempt number (1,2,3,…) for the test in that run',
     example: 2,
   })
   async getAttempt(

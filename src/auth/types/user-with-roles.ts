@@ -2,8 +2,9 @@ import { Role } from '@prisma/client';
 import { Permission } from '@prisma/client';
 
 export interface AuthenticatedUser {
-  userId: string; // Should be string, not number
+  userId: string;
   email: string;
+  organizationId: string;
   roles: Role[];
   permissions: Permission[];
 }

@@ -49,17 +49,14 @@ export class AuthService {
     }
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Generate a unique organization name using Date.now()
     const organizationName = `${firstName}'s Organization ${Date.now()}`;
 
     return this.prisma.$transaction(async (prisma) => {
       try {
-        // Create the organization first
         const organization = await prisma.organization.create({
           data: { name: organizationName },
         });
 
-        // Create the user with the organizationId
         const user = await prisma.user.create({
           data: {
             firstName,
@@ -70,7 +67,6 @@ export class AuthService {
           },
         });
 
-        // Find the admin role
         const adminRole = await prisma.role.findUnique({
           where: { name: 'admin' },
         });
@@ -79,7 +75,6 @@ export class AuthService {
           throw new InternalServerErrorException('Admin role not found');
         }
 
-        // Assign the admin role to the user
         await prisma.userRole.create({
           data: {
             userId: user.id,
@@ -87,7 +82,6 @@ export class AuthService {
           },
         });
 
-        // Generate the JWT token
         const token = this.generateToken(user.id, user.email);
         return { user, token };
       } catch (error: unknown) {

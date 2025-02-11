@@ -15,7 +15,6 @@ import { AuthService } from '@/auth/services/auth.service';
 import { AssignRoleDto } from '@/roles/dto/assign-role.dto';
 import { RoleEnum } from '@/roles/roles.enum';
 
-// Mock bcrypt
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashedPassword123'),
   compare: jest.fn().mockResolvedValue(true),
@@ -36,7 +35,7 @@ describe('AuthService', () => {
       create: jest.fn(),
     },
     role: {
-      findUnique: jest.fn(), // ✅ Lookup by role name instead of UUID
+      findUnique: jest.fn(),
     },
     userRole: {
       findFirst: jest.fn(),
@@ -76,7 +75,6 @@ describe('AuthService', () => {
   });
 
   describe('register', () => {
-    // Updated RegisterUserDto with firstName and lastName
     const registerDto: RegisterUserDto = {
       email: 'test@example.com',
       password: 'password123',

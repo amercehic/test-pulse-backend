@@ -6,19 +6,24 @@ import { TestRunQueryDto } from '../dto/test-run-query.dto';
 import { UpdateTestRunDto } from '../dto/update-test-run.dto';
 
 /**
- * Service for managing test runs and their executions
+ * Service for managing test runs and their executions.
+ *
+ * Note: The organizationId is not provided in the DTO. Instead, the caller (e.g. a controller)
+ * must determine the correct organization based on the authentication method (Bearer or API key)
+ * and pass it as a separate parameter.
  */
 @Injectable()
 export class TestRunService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Creates a new test run with optional test executions
+   * Creates a new test run with optional test executions.
    * @param dto - The data transfer object containing test run and test execution details
+   * @param organizationId - The ID of the organization to which the test run belongs
    * @returns The created test run with its associated test executions
    * @throws Error if creation fails
    */
-  async create(dto: CreateTestRunDto) {
+  async create(dto: CreateTestRunDto, organizationId: string) {
     const { tests, ...runData } = dto;
 
     try {
@@ -27,6 +32,7 @@ export class TestRunService {
           ...runData,
           status: 'queued',
           duration: 0,
+          organization: { connect: { id: organizationId } },
         },
       });
 
@@ -56,18 +62,10 @@ export class TestRunService {
   }
 
   /**
-   * Retrieves all test runs with pagination and filtering options
-   * @param query - Query parameters for filtering and pagination
-   * @param query.status - Filter by test run status
-   * @param query.framework - Filter by testing framework
-   * @param query.browser - Filter by browser
-   * @param query.platform - Filter by platform
-   * @param query.sortBy - Field to sort by (default: 'createdAt')
-   * @param query.order - Sort order ('asc' or 'desc', default: 'desc')
-   * @param query.page - Page number (default: 1)
-   * @param query.limit - Items per page (default: 10)
-   * @returns Object containing test runs data and total count
-   * @throws Error if query fails
+   * Retrieves all test runs with pagination and filtering options.
+   * @param query - Query parameters for filtering and pagination.
+   * @returns Object containing test runs data and total count.
+   * @throws Error if query fails.
    */
   async findAll(query: TestRunQueryDto) {
     const {
@@ -120,11 +118,11 @@ export class TestRunService {
   }
 
   /**
-   * Retrieves a single test run by ID
-   * @param id - The ID of the test run to find
-   * @returns The test run with its associated test executions
-   * @throws NotFoundException if test run is not found
-   * @throws Error if query fails
+   * Retrieves a single test run by ID.
+   * @param id - The ID of the test run to find.
+   * @returns The test run with its associated test executions.
+   * @throws NotFoundException if test run is not found.
+   * @throws Error if query fails.
    */
   async findOne(id: string) {
     try {
@@ -148,12 +146,12 @@ export class TestRunService {
   }
 
   /**
-   * Updates a test run by ID
-   * @param id - The ID of the test run to update
-   * @param dto - The data transfer object containing update data
-   * @returns The updated test run
-   * @throws NotFoundException if test run is not found
-   * @throws Error if update fails or status is invalid
+   * Updates a test run by ID.
+   * @param id - The ID of the test run to update.
+   * @param dto - The data transfer object containing update data.
+   * @returns The updated test run.
+   * @throws NotFoundException if test run is not found.
+   * @throws Error if update fails or status is invalid.
    */
   async update(id: string, dto: UpdateTestRunDto) {
     try {
@@ -189,10 +187,10 @@ export class TestRunService {
   }
 
   /**
-   * Removes a test run by ID
-   * @param id - The ID of the test run to remove
-   * @throws NotFoundException if test run is not found
-   * @throws Error if deletion fails
+   * Removes a test run by ID.
+   * @param id - The ID of the test run to remove.
+   * @throws NotFoundException if test run is not found.
+   * @throws Error if deletion fails.
    */
   async remove(id: string) {
     try {

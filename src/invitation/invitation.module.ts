@@ -1,12 +1,12 @@
 import { PrismaService } from '@db/prisma.service';
 import { Module } from '@nestjs/common';
 
-import { AuthModule } from '@/auth/auth.module'; // Import AuthModule
+import { AuthModule } from '@/auth/auth.module';
 import { InvitationController } from '@/invitation/controllers/invitation.controller';
 import { InvitationService } from '@/invitation/services/invitation.service';
 
 @Module({
-  imports: [AuthModule], // <-- Add AuthModule here
+  imports: [AuthModule],
   controllers: [InvitationController],
   providers: [InvitationService, PrismaService],
   exports: [InvitationService],

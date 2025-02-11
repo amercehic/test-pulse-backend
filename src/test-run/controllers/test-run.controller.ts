@@ -1,5 +1,3 @@
-// test-run/controllers/test-run.controller.ts
-
 import {
   Body,
   Controller,
@@ -9,6 +7,8 @@ import {
   Patch,
   Post,
   Query,
+  Req,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -20,17 +20,18 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
+import { EitherAuthGuard } from '@/common/guards/either-auth.guard';
 
 import { CreateTestRunDto } from '../dto/create-test-run.dto';
 import { TestRunQueryDto } from '../dto/test-run-query.dto';
 import { UpdateTestRunDto } from '../dto/update-test-run.dto';
 import { TestRunService } from '../services/test-run.service';
+import { ExtendedRequest } from '../types/extended-request.type';
 
 @ApiTags('Test Runs')
 @ApiBearerAuth()
 @Controller('test-runs')
-@UseGuards(JwtAuthGuard)
+@UseGuards(EitherAuthGuard)
 export class TestRunController {
   constructor(private readonly testRunService: TestRunService) {}
 
@@ -43,8 +44,18 @@ export class TestRunController {
     description:
       'Payload to create a new test run (plus optional ephemeral tests)',
   })
-  create(@Body() createTestRunDto: CreateTestRunDto) {
-    return this.testRunService.create(createTestRunDto);
+  create(
+    @Body() createTestRunDto: CreateTestRunDto,
+    @Req() req: ExtendedRequest,
+  ) {
+    const organizationId =
+      (req.user && (req.user as any).organizationId) || req.organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException(
+        'Organization ID not found for the authenticated user',
+      );
+    }
+    return this.testRunService.create(createTestRunDto, organizationId);
   }
 
   @Get()

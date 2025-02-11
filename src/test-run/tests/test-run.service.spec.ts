@@ -68,13 +68,15 @@ describe('TestRunService', () => {
       };
       prisma.testRun.findUnique.mockResolvedValue(testRunWithExecutions);
 
-      const result = await service.create(createDto);
+      const dummyOrgId = 'dummy-org-id';
+      const result = await service.create(createDto, dummyOrgId);
 
       expect(prisma.testRun.create).toHaveBeenCalledWith({
         data: {
           ...createDto,
           status: 'queued',
           duration: 0,
+          organization: { connect: { id: dummyOrgId } },
         },
       });
       expect(prisma.testExecution.createMany).not.toHaveBeenCalled();
@@ -134,7 +136,8 @@ describe('TestRunService', () => {
       prisma.testRun.findUnique.mockResolvedValue(testRunWithExecutions);
       prisma.testExecution.createMany.mockResolvedValue({ count: 2 });
 
-      const result = await service.create(createDto);
+      const dummyOrgId = 'dummy-org-id';
+      const result = await service.create(createDto, dummyOrgId);
 
       expect(prisma.testRun.create).toHaveBeenCalledWith({
         data: {
@@ -142,6 +145,7 @@ describe('TestRunService', () => {
           tests: undefined,
           status: 'queued',
           duration: 0,
+          organization: { connect: { id: dummyOrgId } },
         },
       });
 
@@ -187,7 +191,10 @@ describe('TestRunService', () => {
 
       prisma.testRun.create.mockRejectedValue(new Error('Database error'));
 
-      await expect(service.create(createDto)).rejects.toThrow('Database error');
+      const dummyOrgId = 'dummy-org-id';
+      await expect(service.create(createDto, dummyOrgId)).rejects.toThrow(
+        'Database error',
+      );
       expect(prisma.testRun.create).toHaveBeenCalled();
     });
   });

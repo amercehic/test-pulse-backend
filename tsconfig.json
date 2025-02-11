@@ -4,9 +4,9 @@
     "target": "ES2021",
     "lib": ["ES2021", "DOM"],
     "moduleResolution": "node",
-    "outDir": "./dist/src", // Adjusted to nest compiled files
+    "outDir": "./dist/src",
     "rootDir": ".",
-    "baseUrl": "./src", // Required for absolute imports
+    "baseUrl": "./src", 
     "paths": {
       "@/*": ["*"],
       "@db/*": ["../prisma/*"],

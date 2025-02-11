@@ -7,6 +7,8 @@ import { InvitationModule } from '@/invitation/invitation.module';
 import { StorageModule } from '@/storage/storage.module';
 import { TestRunModule } from '@/test-run/test-run.module';
 
+import { ApiKeyModule } from './api-key/api-key.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -17,6 +19,7 @@ import { TestRunModule } from '@/test-run/test-run.module';
     AuthModule,
     InvitationModule,
     StorageModule,
+    ApiKeyModule,
   ],
   providers: [PrismaService],
   exports: [PrismaService],

@@ -12,14 +12,11 @@ import { AuthService } from '@/auth/services/auth.service';
 import { AcceptInviteDto } from '@/invitation/dto/accept-invite.dto';
 import { InviteUserDto } from '@/invitation/dto/invite.dto';
 
-/**
- * Service handling user invitations within an organization
- */
 @Injectable()
 export class InvitationService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly authService: AuthService, // Ensure AuthService is imported
+    private readonly authService: AuthService,
   ) {}
 
   /**
@@ -100,7 +97,6 @@ export class InvitationService {
     });
     if (!user) {
       const hashedPassword = await bcrypt.hash(password, 10);
-      // Use createUser helper from AuthService
       user = await this.authService.createUser({
         firstName,
         lastName,
@@ -108,7 +104,6 @@ export class InvitationService {
         password: hashedPassword,
         organizationId: invite.organizationId,
       });
-      // Since we've just created the user, we assert that user is not null.
       await this.prisma.userRole.create({
         data: {
           userId: user!.id,

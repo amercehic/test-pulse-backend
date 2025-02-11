@@ -42,7 +42,7 @@ export class TestRunQueryDto {
   })
   @IsOptional()
   @IsString()
-  sortBy?: string; // e.g., 'createdAt'
+  sortBy?: string;
 
   @ApiPropertyOptional({
     description: 'Order of sorting. Can be either "asc" or "desc".',

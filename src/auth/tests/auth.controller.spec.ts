@@ -11,7 +11,6 @@ describe('AuthController (e2e)', () => {
   let accessToken: string;
   let userId: string;
 
-  // Update testUser to include firstName and lastName.
   const testUser = {
     email: `test+${Date.now()}@example.com`,
     password: 'Test1234!',
@@ -35,10 +34,8 @@ describe('AuthController (e2e)', () => {
     await app.init();
 
     prisma = moduleFixture.get<PrismaService>(PrismaService);
-    // Clean up any prior test users
     await prisma.user.deleteMany({ where: { email: testUser.email } });
 
-    // Create roles if not exist
     const roles = ['admin', 'super'];
     for (const roleName of roles) {
       await prisma.role.upsert({

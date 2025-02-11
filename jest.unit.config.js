@@ -1,7 +1,7 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
-  testRegex: '\\.service\\.spec\\.ts$', // Runs only unit tests in services
+  testRegex: '\\.service\\.spec\\.ts$', 
   transform: {
     '^.+\\.ts$': 'ts-jest',
   },
@@ -9,7 +9,6 @@ module.exports = {
   coverageDirectory: './coverage/unit',
   testEnvironment: 'node',
 
-  // Path aliases
   rootDir: 'src',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
