@@ -5,6 +5,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
@@ -19,6 +20,19 @@ jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashedPassword123'),
   compare: jest.fn().mockResolvedValue(true),
 }));
+
+// Create a mock ConfigService that returns dummy secrets for tokens
+const mockConfigService = {
+  get: jest.fn((key: string) => {
+    if (key === 'JWT_REFRESH_SECRET') {
+      return 'dummy-refresh-secret';
+    }
+    if (key === 'JWT_ACCESS_SECRET') {
+      return 'dummy-access-secret';
+    }
+    return null;
+  }),
+};
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -57,6 +71,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: JwtService, useValue: mockJwtService },
+        { provide: ConfigService, useValue: mockConfigService },
       ],
     }).compile();
 
@@ -71,7 +86,9 @@ describe('AuthService', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    loggerSpy.mockRestore();
+    if (loggerSpy) {
+      loggerSpy.mockRestore();
+    }
   });
 
   describe('register', () => {
