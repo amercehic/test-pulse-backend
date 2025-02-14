@@ -7,10 +7,12 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 
 import { LoginUserDto } from '@/auth/dto/login-user.dto';
+import { RefreshTokenDto } from '@/auth/dto/refresh-token.dto';
 import { RegisterUserDto } from '@/auth/dto/register-user.dto';
 import { AssignRoleDto } from '@/roles/dto/assign-role.dto';
 
@@ -25,6 +27,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   /**
@@ -82,8 +85,8 @@ export class AuthService {
           },
         });
 
-        const token = this.generateToken(user.id, user.email);
-        return { user, token };
+        const tokens = await this.generateTokens(user.id, user.email);
+        return { user, ...tokens };
       } catch (error: unknown) {
         this.logger.error(
           `User registration failed: ${(error as Error).message}`,
@@ -113,8 +116,8 @@ export class AuthService {
       this.logger.warn(`Login failed: Incorrect password for email ${email}`);
       throw new UnauthorizedException('Invalid email or password');
     }
-    const token = this.generateToken(user.id, user.email);
-    return { user, token };
+    const tokens = await this.generateTokens(user.id, user.email);
+    return { user, ...tokens };
   }
 
   /**
@@ -136,6 +139,33 @@ export class AuthService {
       );
       throw new InternalServerErrorException('Failed to generate token');
     }
+  }
+
+  private generateRefreshToken(userId: string): string {
+    try {
+      return this.jwtService.sign(
+        { userId },
+        {
+          secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+          expiresIn: '7d',
+        },
+      );
+    } catch (error: unknown) {
+      const err = error as Error;
+      this.logger.error(
+        `Refresh token generation failed: ${err.message}`,
+        err.stack,
+      );
+      throw new InternalServerErrorException(
+        'Failed to generate refresh token',
+      );
+    }
+  }
+
+  private async generateTokens(userId: string, email: string) {
+    const token = this.generateToken(userId, email);
+    const refreshToken = this.generateRefreshToken(userId);
+    return { token, refreshToken };
   }
 
   /**
@@ -192,5 +222,30 @@ export class AuthService {
       data: { userId, roleId: role.id },
     });
     return { message: `Role ${roleName} assigned to user ${user.email}` };
+  }
+
+  async refresh(refreshTokenDto: RefreshTokenDto) {
+    try {
+      const { refreshToken } = refreshTokenDto;
+      const payload = this.jwtService.verify(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
+
+      const user = await this.prisma.user.findUnique({
+        where: { id: payload.userId },
+      });
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      const tokens = await this.generateTokens(user.id, user.email);
+      return tokens;
+    } catch (error) {
+      if (error instanceof UnauthorizedException) {
+        throw error;
+      }
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 }
