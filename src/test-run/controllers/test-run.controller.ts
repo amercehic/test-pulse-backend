@@ -20,7 +20,9 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { SearchDto } from '@/common/dto/search.dto';
 import { EitherAuthGuard } from '@/common/guards/either-auth.guard';
+import { SearchService } from '@/common/services/search.service';
 
 import { CreateTestRunDto } from '../dto/create-test-run.dto';
 import { TestRunQueryDto } from '../dto/test-run-query.dto';
@@ -33,7 +35,24 @@ import { ExtendedRequest } from '../types/extended-request.type';
 @Controller('test-runs')
 @UseGuards(EitherAuthGuard)
 export class TestRunController {
-  constructor(private readonly testRunService: TestRunService) {}
+  constructor(
+    private readonly testRunService: TestRunService,
+    private readonly searchService: SearchService,
+  ) {}
+
+  @Get('search')
+  @ApiOperation({ summary: 'Search test runs' })
+  @ApiQuery({ name: 'searchTerm', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  async search(@Query() searchDto: SearchDto) {
+    return this.searchService.search({
+      model: 'testRun',
+      searchFields: ['name', 'framework', 'browser', 'platform'],
+      searchTerm: searchDto.searchTerm || '',
+      include: { testExecutions: true },
+      limit: searchDto.limit,
+    });
+  }
 
   @Post()
   @ApiOperation({

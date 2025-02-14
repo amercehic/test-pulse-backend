@@ -8,6 +8,7 @@ import {
 
 import { Roles } from '@/auth/decorators/roles.decorator';
 import { LoginUserDto } from '@/auth/dto/login-user.dto';
+import { RefreshTokenDto } from '@/auth/dto/refresh-token.dto';
 import { RegisterUserDto } from '@/auth/dto/register-user.dto';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@/auth/guards/roles.guard';
@@ -48,5 +49,16 @@ export class AuthController {
   @ApiResponse({ status: 409, description: 'User already has this role' })
   async assignRole(@Body() assignRoleDto: AssignRoleDto) {
     return this.authService.assignRole(assignRoleDto);
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token' })
+  @ApiResponse({
+    status: 200,
+    description: 'New access token generated successfully',
+  })
+  @ApiResponse({ status: 401, description: 'Invalid refresh token' })
+  async refreshToken(@Body() refreshTokenDto: RefreshTokenDto) {
+    return this.authService.refresh(refreshTokenDto);
   }
 }
