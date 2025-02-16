@@ -124,8 +124,8 @@ export class TestExecutionService {
         logs: null,
         errorMessage: null,
         stackTrace: null,
-        screenshotUrl: null,
-        videoUrl: null,
+        screenshotKey: null,
+        videoKey: null,
         startedAt: null,
         completedAt: null,
       }));

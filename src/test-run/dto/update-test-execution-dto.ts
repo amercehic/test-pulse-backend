@@ -33,13 +33,13 @@ export class UpdateTestExecutionDto {
   @IsString()
   stackTrace?: string;
 
-  @ApiProperty({ description: 'URL to screenshot if available' })
+  @ApiProperty({ description: 'File key for the screenshot if available' })
   @IsOptional()
   @IsString()
-  screenshotUrl?: string;
+  screenshotKey?: string;
 
-  @ApiProperty({ description: 'URL to execution video if available' })
+  @ApiProperty({ description: 'File key for the execution video if available' })
   @IsOptional()
   @IsString()
-  videoUrl?: string;
+  videoKey?: string;
 }
