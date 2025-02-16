@@ -4,6 +4,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateTestRunDto, EphemeralTestDto } from '../dto/create-test-run.dto';
 import { TestRunQueryDto } from '../dto/test-run-query.dto';
 import { UpdateTestRunDto } from '../dto/update-test-run.dto';
+import { TestExecutionStatus, TestRunStatus } from '../enums/test-status.enum';
 
 /**
  * Service for managing test runs and their executions.
@@ -30,7 +31,7 @@ export class TestRunService {
       const createdRun = await this.prisma.testRun.create({
         data: {
           ...runData,
-          status: 'queued',
+          status: TestRunStatus.QUEUED,
           duration: 0,
           organization: { connect: { id: organizationId } },
         },
@@ -43,7 +44,7 @@ export class TestRunService {
           suite: test.suite,
           description: test.description,
           attempt: 1,
-          status: 'queued',
+          status: TestExecutionStatus.QUEUED,
         }));
 
         await this.prisma.testExecution.createMany({ data: executionData });
@@ -64,10 +65,11 @@ export class TestRunService {
   /**
    * Retrieves all test runs with pagination and filtering options.
    * @param query - Query parameters for filtering and pagination.
+   * @param organizationId - The ID of the organization to filter test runs
    * @returns Object containing test runs data and total count.
    * @throws Error if query fails.
    */
-  async findAll(query: TestRunQueryDto) {
+  async findAll(query: TestRunQueryDto, organizationId: string) {
     const {
       status,
       framework,
@@ -82,7 +84,9 @@ export class TestRunService {
     const skip = (Number(page) - 1) * Number(limit);
     const take = Number(limit);
 
-    const where: any = {};
+    const where: any = {
+      organizationId,
+    };
     if (status) {
       where.status = status;
     }
@@ -124,10 +128,10 @@ export class TestRunService {
    * @throws NotFoundException if test run is not found.
    * @throws Error if query fails.
    */
-  async findOne(id: string) {
+  async findOne(id: string, organizationId: string) {
     try {
-      const run = await this.prisma.testRun.findUnique({
-        where: { id },
+      const run = await this.prisma.testRun.findFirst({
+        where: { id, organizationId },
         include: { testExecutions: true },
       });
 
@@ -153,9 +157,11 @@ export class TestRunService {
    * @throws NotFoundException if test run is not found.
    * @throws Error if update fails or status is invalid.
    */
-  async update(id: string, dto: UpdateTestRunDto) {
+  async update(id: string, dto: UpdateTestRunDto, organizationId: string) {
     try {
-      const existing = await this.prisma.testRun.findUnique({ where: { id } });
+      const existing = await this.prisma.testRun.findFirst({
+        where: { id, organizationId },
+      });
       if (!existing) {
         throw new NotFoundException(`TestRun with ID ${id} not found`);
       }
@@ -192,9 +198,11 @@ export class TestRunService {
    * @throws NotFoundException if test run is not found.
    * @throws Error if deletion fails.
    */
-  async remove(id: string) {
+  async remove(id: string, organizationId: string) {
     try {
-      const existing = await this.prisma.testRun.findUnique({ where: { id } });
+      const existing = await this.prisma.testRun.findFirst({
+        where: { id, organizationId },
+      });
       if (!existing) {
         throw new NotFoundException(`TestRun with ID ${id} not found`);
       }

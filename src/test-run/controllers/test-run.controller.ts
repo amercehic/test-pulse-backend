@@ -89,29 +89,61 @@ export class TestRunController {
   @ApiQuery({ name: 'order', required: false })
   @ApiQuery({ name: 'page', required: false })
   @ApiQuery({ name: 'limit', required: false })
-  findAll(@Query() query: TestRunQueryDto) {
-    return this.testRunService.findAll(query);
+  findAll(@Query() query: TestRunQueryDto, @Req() req: ExtendedRequest) {
+    const organizationId =
+      (req.user && (req.user as any).organizationId) || req.organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException(
+        'Organization ID not found for the authenticated user',
+      );
+    }
+    return this.testRunService.findAll(query, organizationId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific test run by ID' })
   @ApiParam({ name: 'id', description: 'ID of the test run' })
-  findOne(@Param('id') id: string) {
-    return this.testRunService.findOne(id);
+  findOne(@Param('id') id: string, @Req() req: ExtendedRequest) {
+    const organizationId =
+      (req.user && (req.user as any).organizationId) || req.organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException(
+        'Organization ID not found for the authenticated user',
+      );
+    }
+    return this.testRunService.findOne(id, organizationId);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update an existing test run (e.g., status)' })
   @ApiParam({ name: 'id', description: 'ID of the test run to update' })
   @ApiBody({ type: UpdateTestRunDto })
-  update(@Param('id') id: string, @Body() updateTestRunDto: UpdateTestRunDto) {
-    return this.testRunService.update(id, updateTestRunDto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTestRunDto,
+    @Req() req: ExtendedRequest,
+  ) {
+    const organizationId =
+      (req.user && (req.user as any).organizationId) || req.organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException(
+        'Organization ID not found for the authenticated user',
+      );
+    }
+    return this.testRunService.update(id, dto, organizationId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a test run by ID' })
   @ApiParam({ name: 'id', description: 'ID of the test run to delete' })
-  remove(@Param('id') id: string) {
-    return this.testRunService.remove(id);
+  remove(@Param('id') id: string, @Req() req: ExtendedRequest) {
+    const organizationId =
+      (req.user && (req.user as any).organizationId) || req.organizationId;
+    if (!organizationId) {
+      throw new UnauthorizedException(
+        'Organization ID not found for the authenticated user',
+      );
+    }
+    return this.testRunService.remove(id, organizationId);
   }
 }

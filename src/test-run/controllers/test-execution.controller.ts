@@ -18,6 +18,7 @@ import {
 import { EitherAuthGuard } from '@/common/guards/either-auth.guard';
 
 import { RetryTestsDto } from '../dto/retry-tests.dto';
+import { SubmitTestExecutionResultDto } from '../dto/submit-test-execution-result.dto';
 import { TestExecutionService } from '../services/test-execution.service';
 
 @ApiTags('Test Executions')
@@ -32,6 +33,23 @@ export class TestExecutionController {
   @ApiParam({ name: 'id', description: 'ID of the test execution' })
   async getTestExecution(@Param('id') id: string) {
     return this.testExecutionService.getTestExecution(id);
+  }
+
+  @Post('results')
+  @ApiOperation({
+    summary:
+      'Submit result(s) for one or more test executions based on their ID(s)',
+  })
+  @ApiBody({
+    type: SubmitTestExecutionResultDto,
+    isArray: true,
+    description:
+      'A single object or an array of objects containing test execution IDs and result data',
+  })
+  async submitResults(
+    @Body() dto: SubmitTestExecutionResultDto | SubmitTestExecutionResultDto[],
+  ) {
+    return this.testExecutionService.submitResults(dto);
   }
 
   @Get(':testRunId/attempt/:attempt')

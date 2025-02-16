@@ -1,9 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsOptional } from 'class-validator';
+import { IsEnum, IsOptional } from 'class-validator';
+
+import { TestRunStatus } from '../enums/test-status.enum';
 
 export class UpdateTestRunDto {
-  @ApiProperty({ description: 'Status of the test run', example: 'completed' })
+  @ApiProperty({
+    description: 'Status of the test run',
+    enum: TestRunStatus,
+    example: TestRunStatus.COMPLETED,
+  })
   @IsOptional()
-  @IsIn(['queued', 'running', 'completed', 'cancelled', 'failed'])
-  status?: string;
+  @IsEnum(TestRunStatus)
+  status?: TestRunStatus;
 }

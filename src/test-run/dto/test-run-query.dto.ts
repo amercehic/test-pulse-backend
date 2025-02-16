@@ -1,16 +1,25 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
+
+import { TestRunStatus } from '../enums/test-status.enum';
 
 export class TestRunQueryDto {
   @ApiPropertyOptional({
-    description: 'Status of the test run. For example "passed" or "failed".',
-    enum: ['passed', 'failed'],
-    example: 'passed',
+    description: 'Status of the test run',
+    enum: TestRunStatus,
+    example: TestRunStatus.COMPLETED,
   })
   @IsOptional()
-  @IsString()
-  status?: 'passed' | 'failed';
+  @IsEnum(TestRunStatus)
+  status?: TestRunStatus;
 
   @ApiPropertyOptional({
     description: 'Framework used for the test run.',
