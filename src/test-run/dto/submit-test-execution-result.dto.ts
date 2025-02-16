@@ -45,16 +45,17 @@ export class SubmitTestExecutionResultDto {
   stackTrace?: string;
 
   @ApiPropertyOptional({
-    description: 'URL of the screenshot captured during the test execution',
-    example: 'https://example.com/screenshot.png',
+    description:
+      'File key for the screenshot captured during the test execution',
+    example: 'org123/images/abc-screenshot.png',
   })
-  screenshotUrl?: string;
+  screenshotKey?: string;
 
   @ApiPropertyOptional({
-    description: 'URL of the video captured during the test execution',
-    example: 'https://example.com/video.mp4',
+    description: 'File key for the video captured during the test execution',
+    example: 'org123/videos/abc-recording.mp4',
   })
-  videoUrl?: string;
+  videoKey?: string;
 
   @ApiPropertyOptional({
     description: 'Timestamp when the test execution started',

@@ -67,8 +67,8 @@ model TestExecution {
   logs          String?
   errorMessage  String?
   stackTrace    String?
-  screenshotUrl String?
-  videoUrl      String?
+  screenshotKey String?
+  videoKey      String?
   startedAt     DateTime?
   completedAt   DateTime?
 
