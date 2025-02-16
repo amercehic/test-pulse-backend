@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 
-import { ErrorResponseDto } from '../dto/error-response.dto';
+import { ErrorResponseDto } from '@/common/dto/error-response.dto';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {

@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional } from 'class-validator';
 
-import { TestExecutionStatus } from '../enums/test-status.enum';
+import { TestExecutionStatus } from '@/test-run/enums/test-status.enum';
 
 export class SubmitTestExecutionResultDto {
   @ApiProperty({

@@ -1,9 +1,9 @@
 import { PrismaService } from '@db/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { RetryTestsDto } from '../dto/retry-tests.dto';
-import { SubmitTestExecutionResultDto } from '../dto/submit-test-execution-result.dto';
-import { TestExecutionStatus } from '../enums/test-status.enum';
+import { RetryTestsDto } from '@/test-run/dto/retry-tests.dto';
+import { SubmitTestExecutionResultDto } from '@/test-run/dto/submit-test-execution-result.dto';
+import { TestExecutionStatus } from '@/test-run/enums/test-status.enum';
 
 /**
  * Service responsible for managing test execution operations.

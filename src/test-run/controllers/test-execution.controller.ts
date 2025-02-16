@@ -16,10 +16,9 @@ import {
 } from '@nestjs/swagger';
 
 import { EitherAuthGuard } from '@/common/guards/either-auth.guard';
-
-import { RetryTestsDto } from '../dto/retry-tests.dto';
-import { SubmitTestExecutionResultDto } from '../dto/submit-test-execution-result.dto';
-import { TestExecutionService } from '../services/test-execution.service';
+import { RetryTestsDto } from '@/test-run/dto/retry-tests.dto';
+import { SubmitTestExecutionResultDto } from '@/test-run/dto/submit-test-execution-result.dto';
+import { TestExecutionService } from '@/test-run/services/test-execution.service';
 
 @ApiTags('Test Executions')
 @ApiBearerAuth()

@@ -1,10 +1,16 @@
 import { PrismaService } from '@db/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { CreateTestRunDto, EphemeralTestDto } from '../dto/create-test-run.dto';
-import { TestRunQueryDto } from '../dto/test-run-query.dto';
-import { UpdateTestRunDto } from '../dto/update-test-run.dto';
-import { TestExecutionStatus, TestRunStatus } from '../enums/test-status.enum';
+import {
+  CreateTestRunDto,
+  EphemeralTestDto,
+} from '@/test-run/dto/create-test-run.dto';
+import { TestRunQueryDto } from '@/test-run/dto/test-run-query.dto';
+import { UpdateTestRunDto } from '@/test-run/dto/update-test-run.dto';
+import {
+  TestExecutionStatus,
+  TestRunStatus,
+} from '@/test-run/enums/test-status.enum';
 
 /**
  * Service for managing test runs and their executions.

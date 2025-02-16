@@ -9,7 +9,7 @@ import {
   Min,
 } from 'class-validator';
 
-import { TestRunStatus } from '../enums/test-status.enum';
+import { TestRunStatus } from '@/test-run/enums/test-status.enum';
 
 export class TestRunQueryDto {
   @ApiPropertyOptional({

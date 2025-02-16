@@ -68,7 +68,6 @@ describe('TestRunController (e2e)', () => {
     const response = await registerUser(testUser);
     expect(response.status).toBe(201);
     expect(response.body).toHaveProperty('user');
-    // Update the registered user with the organizationId
     await prisma.user.update({
       where: { id: response.body.user.id },
       data: { organizationId },
