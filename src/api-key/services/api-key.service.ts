@@ -7,7 +7,8 @@ import {
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 
-import { CreateApiKeyDto } from '../dto/create-api-key.dto';
+import { CreateApiKeyDto } from '@/api-key/dto/create-api-key.dto';
+
 @Injectable()
 export class ApiKeyService {
   constructor(private readonly prisma: PrismaService) {}

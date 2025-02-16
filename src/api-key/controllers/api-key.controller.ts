@@ -12,11 +12,10 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 
+import { CreateApiKeyDto } from '@/api-key/dto/create-api-key.dto';
+import { ApiKeyService } from '@/api-key/services/api-key.service';
 import { JwtAuthGuard } from '@/auth/guards/jwt-auth.guard';
 import { AuthenticatedUser } from '@/auth/types/user-with-roles';
-
-import { CreateApiKeyDto } from '../dto/create-api-key.dto';
-import { ApiKeyService } from '../services/api-key.service';
 
 @ApiTags('API Keys')
 @ApiBearerAuth()

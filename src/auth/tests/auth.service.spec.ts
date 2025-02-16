@@ -21,7 +21,6 @@ jest.mock('bcrypt', () => ({
   compare: jest.fn().mockResolvedValue(true),
 }));
 
-// Create a mock ConfigService that returns dummy secrets for tokens
 const mockConfigService = {
   get: jest.fn((key: string) => {
     if (key === 'JWT_REFRESH_SECRET') {

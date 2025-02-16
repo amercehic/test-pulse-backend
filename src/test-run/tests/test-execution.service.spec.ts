@@ -2,8 +2,9 @@ import { PrismaService } from '@db/prisma.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { RetryTestsDto } from '../dto/retry-tests.dto';
-import { TestExecutionService } from '../services/test-execution.service';
+import { RetryTestsDto } from '@/test-run/dto/retry-tests.dto';
+import { TestExecutionService } from '@/test-run/services/test-execution.service';
+
 describe('TestExecutionService', () => {
   let service: TestExecutionService;
   let prisma: any;

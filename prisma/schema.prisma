@@ -7,13 +7,37 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TestRunStatus {
+  queued
+  running
+  completed
+  cancelled
+  failed
+  timeout
+  error
+}
+
+enum TestExecutionStatus {
+  queued
+  running
+  passed
+  failed
+  skipped
+  cancelled
+  blocked
+  timeout
+  error
+  flaky
+  quarantined
+}
+
 model TestRun {
   id             String       @id @default(uuid())
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
   name           String
   triggeredBy    String
-  status         String       @default("queued")
+  status         TestRunStatus @default(queued)
   duration       Float?
   commit         String
   branch         String
@@ -38,7 +62,7 @@ model TestExecution {
 
   attempt Int @default(1)
 
-  status        String    @default("queued")
+  status        TestExecutionStatus @default(queued)
   duration      Float?
   logs          String?
   errorMessage  String?

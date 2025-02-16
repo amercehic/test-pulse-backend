@@ -1,7 +1,9 @@
 import { PrismaService } from '@db/prisma.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-import { RetryTestsDto } from '../dto/retry-tests.dto';
+import { RetryTestsDto } from '@/test-run/dto/retry-tests.dto';
+import { SubmitTestExecutionResultDto } from '@/test-run/dto/submit-test-execution-result.dto';
+import { TestExecutionStatus } from '@/test-run/enums/test-status.enum';
 
 /**
  * Service responsible for managing test execution operations.
@@ -9,6 +11,38 @@ import { RetryTestsDto } from '../dto/retry-tests.dto';
 @Injectable()
 export class TestExecutionService {
   constructor(private readonly prisma: PrismaService) {}
+
+  /**
+   * Submits result(s) for one or more test executions.
+   * @param dto - A single result or an array of results containing test execution IDs and result data.
+   * @returns The updated test execution(s).
+   * @throws NotFoundException if any test execution is not found.
+   */
+  async submitResults(
+    dto: SubmitTestExecutionResultDto | SubmitTestExecutionResultDto[],
+  ) {
+    const results = Array.isArray(dto) ? dto : [dto];
+
+    const updatedExecutions = await Promise.all(
+      results.map(async (result) => {
+        const { id, ...updateData } = result;
+        const existing = await this.prisma.testExecution.findUnique({
+          where: { id },
+        });
+        if (!existing) {
+          throw new NotFoundException(`TestExecution with ID ${id} not found`);
+        }
+        return this.prisma.testExecution.update({
+          where: { id },
+          data: {
+            ...updateData,
+          },
+        });
+      }),
+    );
+
+    return Array.isArray(dto) ? updatedExecutions : updatedExecutions[0];
+  }
 
   /**
    * Retrieves a specific test execution by its ID.
@@ -85,7 +119,7 @@ export class TestExecutionService {
         suite: old.suite,
         description: old.description,
         attempt: old.attempt + 1,
-        status: 'queued',
+        status: TestExecutionStatus.QUEUED,
         duration: 0,
         logs: null,
         errorMessage: null,

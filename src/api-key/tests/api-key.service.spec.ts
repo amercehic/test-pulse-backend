@@ -11,8 +11,8 @@ import { NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
 
-import { CreateApiKeyDto } from '../dto/create-api-key.dto';
-import { ApiKeyService } from '../services/api-key.service';
+import { CreateApiKeyDto } from '@/api-key/dto/create-api-key.dto';
+import { ApiKeyService } from '@/api-key/services/api-key.service';
 
 describe('ApiKeyService', () => {
   let service: ApiKeyService;
