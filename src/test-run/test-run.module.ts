@@ -12,12 +12,20 @@ import { TestRunController } from '@/test-run/controllers/test-run.controller';
 import { TestExecutionService } from '@/test-run/services/test-execution.service';
 import { TestRunService } from '@/test-run/services/test-run.service';
 
+import { TestAnalyticsController } from './controllers/test-analytics.controller';
+import { TestAnalyticsService } from './services/test-analytics.service';
+
 @Module({
   imports: [StorageModule],
-  controllers: [TestRunController, TestExecutionController],
+  controllers: [
+    TestRunController,
+    TestExecutionController,
+    TestAnalyticsController,
+  ],
   providers: [
     TestRunService,
     TestExecutionService,
+    TestAnalyticsService,
     PrismaService,
     JwtAuthGuard,
     ApiKeyGuard,

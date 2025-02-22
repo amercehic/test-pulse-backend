@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -12,6 +13,7 @@ import {
   ApiBody,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 
@@ -26,6 +28,102 @@ import { TestExecutionService } from '@/test-run/services/test-execution.service
 @UseGuards(EitherAuthGuard)
 export class TestExecutionController {
   constructor(private readonly testExecutionService: TestExecutionService) {}
+
+  @Get('history/:identifier')
+  @ApiOperation({ summary: 'Get history of a specific test by its identifier' })
+  @ApiParam({
+    name: 'identifier',
+    description: 'Unique identifier hash of the test',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Filter results from this date (ISO format)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'Filter results until this date (ISO format)',
+  })
+  async getTestHistory(
+    @Param('identifier') identifier: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.testExecutionService.getTestHistory(
+      identifier,
+      startDate,
+      endDate,
+    );
+  }
+
+  @Get('compare')
+  @ApiOperation({ summary: 'Compare test executions across different runs' })
+  @ApiQuery({
+    name: 'identifiers',
+    required: true,
+    description: 'Comma-separated list of test identifiers to compare',
+    type: String,
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Compare from this date (ISO format)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'Compare until this date (ISO format)',
+  })
+  async compareTests(
+    @Query('identifiers') identifiers: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    const identifierArray = identifiers.split(',');
+    return this.testExecutionService.compareTests(
+      identifierArray,
+      startDate,
+      endDate,
+    );
+  }
+
+  @Get('duration/trend')
+  @ApiOperation({ summary: 'Get execution duration trends over time' })
+  @ApiQuery({
+    name: 'identifier',
+    required: false,
+    description: 'Filter by specific test identifier',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: false,
+    description: 'Analyze from this date (ISO format)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: false,
+    description: 'Analyze until this date (ISO format)',
+  })
+  @ApiQuery({
+    name: 'groupBy',
+    required: false,
+    description: 'Group results by day, week, or month',
+    enum: ['day', 'week', 'month'],
+  })
+  async getDurationTrend(
+    @Query('identifier') identifier?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('groupBy') groupBy: 'day' | 'week' | 'month' = 'day',
+  ) {
+    return this.testExecutionService.getDurationTrend(
+      identifier,
+      startDate,
+      endDate,
+      groupBy,
+    );
+  }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific test execution by its ID' })

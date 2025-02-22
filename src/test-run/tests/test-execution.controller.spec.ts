@@ -172,6 +172,7 @@ describe('TestExecutionController (e2e)', () => {
         data: {
           testRunId,
           name: 'DeleteMeTest',
+          identifier: 'DeleteMeTest',
         },
       });
       newExecutionId = execution.id;

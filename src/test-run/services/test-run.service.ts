@@ -12,12 +12,10 @@ import {
   TestRunStatus,
 } from '@/test-run/enums/test-status.enum';
 
+import { generateTestIdentifier } from '../utils';
+
 /**
  * Service for managing test runs and their executions.
- *
- * Note: The organizationId is not provided in the DTO. Instead, the caller (e.g. a controller)
- * must determine the correct organization based on the authentication method (Bearer or API key)
- * and pass it as a separate parameter.
  */
 @Injectable()
 export class TestRunService {
@@ -49,6 +47,7 @@ export class TestRunService {
           name: test.name,
           suite: test.suite,
           description: test.description,
+          identifier: generateTestIdentifier(test.suite, test.name),
           attempt: 1,
           status: TestExecutionStatus.QUEUED,
         }));

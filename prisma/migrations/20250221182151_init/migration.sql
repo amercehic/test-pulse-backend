@@ -1,3 +1,9 @@
+-- CreateEnum
+CREATE TYPE "TestRunStatus" AS ENUM ('queued', 'running', 'completed', 'cancelled', 'failed', 'timeout', 'error');
+
+-- CreateEnum
+CREATE TYPE "TestExecutionStatus" AS ENUM ('queued', 'running', 'passed', 'failed', 'skipped', 'cancelled', 'blocked', 'timeout', 'error', 'flaky', 'quarantined');
+
 -- CreateTable
 CREATE TABLE "TestRun" (
     "id" TEXT NOT NULL,
@@ -5,7 +11,7 @@ CREATE TABLE "TestRun" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "name" TEXT NOT NULL,
     "triggeredBy" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'queued',
+    "status" "TestRunStatus" NOT NULL DEFAULT 'queued',
     "duration" DOUBLE PRECISION,
     "commit" TEXT NOT NULL,
     "branch" TEXT NOT NULL,
@@ -25,14 +31,15 @@ CREATE TABLE "TestExecution" (
     "name" TEXT NOT NULL,
     "suite" TEXT,
     "description" TEXT,
+    "identifier" TEXT NOT NULL,
     "attempt" INTEGER NOT NULL DEFAULT 1,
-    "status" TEXT NOT NULL DEFAULT 'queued',
+    "status" "TestExecutionStatus" NOT NULL DEFAULT 'queued',
     "duration" DOUBLE PRECISION,
     "logs" TEXT,
     "errorMessage" TEXT,
     "stackTrace" TEXT,
-    "screenshotUrl" TEXT,
-    "videoUrl" TEXT,
+    "screenshotKey" TEXT,
+    "videoKey" TEXT,
     "startedAt" TIMESTAMP(3),
     "completedAt" TIMESTAMP(3),
 
@@ -143,10 +150,25 @@ CREATE TABLE "ApiKey" (
 CREATE INDEX "TestRun_status_idx" ON "TestRun"("status");
 
 -- CreateIndex
+CREATE INDEX "TestRun_createdAt_idx" ON "TestRun"("createdAt");
+
+-- CreateIndex
+CREATE INDEX "TestRun_framework_browser_platform_idx" ON "TestRun"("framework", "browser", "platform");
+
+-- CreateIndex
 CREATE INDEX "TestExecution_status_idx" ON "TestExecution"("status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Organization_name_key" ON "Organization"("name");
+CREATE INDEX "TestExecution_identifier_idx" ON "TestExecution"("identifier");
+
+-- CreateIndex
+CREATE INDEX "TestExecution_testRunId_attempt_idx" ON "TestExecution"("testRunId", "attempt");
+
+-- CreateIndex
+CREATE INDEX "TestExecution_identifier_status_idx" ON "TestExecution"("identifier", "status");
+
+-- CreateIndex
+CREATE INDEX "TestExecution_startedAt_completedAt_idx" ON "TestExecution"("startedAt", "completedAt");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
