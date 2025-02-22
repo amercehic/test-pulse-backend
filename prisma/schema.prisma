@@ -32,12 +32,12 @@ enum TestExecutionStatus {
 }
 
 model TestRun {
-  id             String       @id @default(uuid())
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id             String          @id @default(uuid())
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
   name           String
   triggeredBy    String
-  status         TestRunStatus @default(queued)
+  status         TestRunStatus   @default(queued)
   duration       Float?
   commit         String
   branch         String
@@ -46,22 +46,22 @@ model TestRun {
   browserVersion String
   platform       String
   organizationId String
-  organization   Organization @relation(fields: [organizationId], references: [id])
+  organization   Organization    @relation(fields: [organizationId], references: [id])
   testExecutions TestExecution[]
 
   @@index([status])
+  @@index([createdAt])
+  @@index([framework, browser, platform])
 }
 
 model TestExecution {
-  id        String   @id @default(uuid())
-  testRunId String
-
-  name        String
-  suite       String?
-  description String?
-
-  attempt Int @default(1)
-
+  id            String              @id @default(uuid())
+  testRunId     String
+  name          String
+  suite         String?
+  description   String?
+  identifier    String              // Unique identifier for test across runs
+  attempt       Int                 @default(1)
   status        TestExecutionStatus @default(queued)
   duration      Float?
   logs          String?
@@ -71,15 +71,18 @@ model TestExecution {
   videoKey      String?
   startedAt     DateTime?
   completedAt   DateTime?
-
-  testRun TestRun @relation(fields: [testRunId], references: [id], onDelete: Cascade)
+  testRun       TestRun            @relation(fields: [testRunId], references: [id], onDelete: Cascade)
 
   @@index([status])
+  @@index([identifier])
+  @@index([testRunId, attempt])
+  @@index([identifier, status])
+  @@index([startedAt, completedAt])
 }
 
 model Organization {
   id          String       @id @default(uuid())
-  name        String       @unique
+  name        String       
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   invitations Invitation[]
@@ -104,26 +107,24 @@ model User {
 }
 
 model Role {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String           @id @default(uuid())
+  name        String           @unique
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
-
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now())
   invitations Invitation[]     @relation("RoleToInvitations")
   permissions RolePermission[] @relation("RoleToPermissions")
   users       UserRole[]       @relation("RoleToUsers")
 }
 
 model Permission {
-  id          String   @id @default(uuid())
-  name        String   @unique
+  id          String           @id @default(uuid())
+  name        String           @unique
   description String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
-
-  roles RolePermission[] @relation("RoleToPermissions")
-  users UserPermission[] @relation("UserToPermissions")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @default(now())
+  roles       RolePermission[] @relation("RoleToPermissions")
+  users       UserPermission[] @relation("UserToPermissions")
 }
 
 model RolePermission {
@@ -138,32 +139,29 @@ model UserRole {
   id     String @id @default(uuid())
   userId String
   roleId String
-
-  role Role @relation("RoleToUsers", fields: [roleId], references: [id], onDelete: Cascade)
-  user User @relation("RoleToUsers", fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation("RoleToUsers", fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation("RoleToUsers", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model UserPermission {
-  id           String @id @default(uuid())
+  id           String     @id @default(uuid())
   userId       String
   permissionId String
-
-  permission Permission @relation("UserToPermissions", fields: [permissionId], references: [id], onDelete: Cascade)
-  user       User       @relation("UserToPermissions", fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation("UserToPermissions", fields: [permissionId], references: [id], onDelete: Cascade)
+  user         User       @relation("UserToPermissions", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Invitation {
-  id             String   @id @default(uuid())
-  email          String   @unique
+  id             String       @id @default(uuid())
+  email          String       @unique
   organizationId String
   roleId         String
-  token          String   @unique
-  status         String   @default("pending")
+  token          String       @unique
+  status         String       @default("pending")
   expiresAt      DateTime
-  createdAt      DateTime @default(now())
-
-  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  role         Role         @relation("RoleToInvitations", fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role           Role         @relation("RoleToInvitations", fields: [roleId], references: [id], onDelete: Cascade)
 }
 
 model ApiKey {
