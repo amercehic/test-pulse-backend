@@ -47,7 +47,11 @@ export class TestRunService {
           name: test.name,
           suite: test.suite,
           description: test.description,
-          identifier: generateTestIdentifier(test.suite, test.name),
+          identifier: generateTestIdentifier(
+            test.suite,
+            test.name,
+            organizationId,
+          ),
           attempt: 1,
           status: TestExecutionStatus.QUEUED,
         }));
