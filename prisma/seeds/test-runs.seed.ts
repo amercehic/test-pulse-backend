@@ -97,7 +97,11 @@ export default async function seedTestRuns(prisma: PrismaClient) {
               name: `${suite} Test ${i + 1}`,
               suite: suite,
               description: `Automated test for ${suite.toLowerCase()} functionality`,
-              identifier: generateTestIdentifier(suite, `Test ${i + 1}`),
+              identifier: generateTestIdentifier(
+                suite,
+                `Test ${i + 1}`,
+                organization.id,
+              ),
               attempt: 1,
               status: status,
               duration: status === 'failed' ? null : Math.random() * 60 + 10, // 10-70 seconds
