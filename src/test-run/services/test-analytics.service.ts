@@ -594,4 +594,776 @@ export class TestAnalyticsService {
       platforms: Object.fromEntries(stats.platforms),
     };
   }
+
+  /**
+   * Retrieves advanced flaky test analysis with pattern detection and impact metrics
+   * @param organizationId - The ID of the organization
+   * @param options - Analysis options including date range, thresholds, and sorting
+   * @returns Array of flaky tests with advanced metrics and pattern detection
+   */
+  async getAdvancedFlakyTests(
+    organizationId: string,
+    options: {
+      startDate?: string;
+      endDate?: string;
+      minFlakinessScore?: number;
+      minExecutions?: number;
+      sortBy?: 'flakinessScore' | 'impact' | 'failureRate';
+      timeWindow?: number;
+    },
+  ) {
+    const {
+      startDate,
+      endDate,
+      minFlakinessScore = 1,
+      minExecutions = 2,
+      sortBy = 'flakinessScore',
+      timeWindow,
+    } = options;
+
+    // Calculate dynamic date range if timeWindow is provided
+    let effectiveStartDate = startDate;
+    if (timeWindow && !startDate) {
+      const date = new Date();
+      date.setDate(date.getDate() - timeWindow);
+      effectiveStartDate = date.toISOString();
+    }
+
+    // Fetch test executions
+    const testExecutions = await this.prisma.testExecution.findMany({
+      where: {
+        testRun: {
+          organizationId,
+          ...(effectiveStartDate || endDate
+            ? {
+                createdAt: {
+                  ...(effectiveStartDate && {
+                    gte: new Date(effectiveStartDate),
+                  }),
+                  ...(endDate && { lte: new Date(endDate) }),
+                },
+              }
+            : {}),
+        },
+      },
+      include: {
+        testRun: {
+          select: {
+            createdAt: true,
+            framework: true,
+            browser: true,
+            platform: true,
+            branch: true,
+          },
+        },
+      },
+      orderBy: {
+        testRun: {
+          createdAt: 'desc',
+        },
+      },
+    });
+
+    // If no executions, return empty array early
+    if (testExecutions.length === 0) {
+      return [];
+    }
+
+    // Analyze flaky tests with advanced metrics
+    const flakyTests = this.analyzeAdvancedFlakyTests(testExecutions, {
+      minFlakinessScore,
+      minExecutions,
+    });
+
+    // If no flaky tests, return empty array early
+    if (flakyTests.length === 0) {
+      return [];
+    }
+
+    // Calculate impact scores
+    const testsWithImpact = this.calculateImpactScores(
+      flakyTests,
+      testExecutions,
+    );
+
+    // Sort results based on the specified metric
+    const sortedTests = this.sortFlakyTests(testsWithImpact, sortBy);
+
+    return sortedTests;
+  }
+
+  /**
+   * Analyzes test executions to identify flaky tests with advanced metrics
+   * @param testExecutions - Array of test execution objects
+   * @param options - Analysis options including thresholds
+   * @returns Array of flaky tests with advanced metrics
+   * @private
+   */
+  private analyzeAdvancedFlakyTests(
+    testExecutions: any[],
+    options: {
+      minFlakinessScore: number;
+      minExecutions: number;
+    },
+  ) {
+    const { minFlakinessScore, minExecutions } = options;
+
+    // Group executions by test identifier
+    const testHistory = testExecutions.reduce((acc, exec) => {
+      if (!acc[exec.identifier]) {
+        acc[exec.identifier] = {
+          name: exec.name,
+          suite: exec.suite,
+          executions: [],
+          totalRuns: 0,
+          failures: 0,
+          lastStatus: null,
+          statusChanges: 0,
+          environmentData: [],
+          statusSequence: [],
+        };
+      }
+
+      const test = acc[exec.identifier];
+
+      // Store execution details
+      test.executions.push({
+        status: exec.status,
+        date: exec.testRun.createdAt,
+        environment: {
+          browser: exec.testRun.browser,
+          framework: exec.testRun.framework,
+          platform: exec.testRun.platform,
+          branch: exec.testRun.branch,
+        },
+      });
+
+      test.totalRuns++;
+      test.statusSequence.push(exec.status);
+
+      // Track environment data for correlation analysis
+      test.environmentData.push({
+        browser: exec.testRun.browser,
+        framework: exec.testRun.framework,
+        platform: exec.testRun.platform,
+        branch: exec.testRun.branch,
+        status: exec.status,
+      });
+
+      if (exec.status === 'failed') {
+        test.failures++;
+      }
+
+      if (test.lastStatus && test.lastStatus !== exec.status) {
+        test.statusChanges++;
+      }
+      test.lastStatus = exec.status;
+
+      return acc;
+    }, {});
+
+    // Process each test to calculate advanced metrics
+    return Object.entries(testHistory)
+      .map(([identifier, data]: [string, any]) => {
+        // Skip tests with insufficient executions
+        if (data.totalRuns < minExecutions) {
+          return null;
+        }
+
+        const failureRate = (data.failures / data.totalRuns) * 100;
+        const flakinessScore =
+          (data.statusChanges / (data.totalRuns - 1)) * 100;
+
+        // Skip tests with flakiness score below threshold
+        if (flakinessScore < minFlakinessScore) {
+          return null;
+        }
+
+        // Detect flakiness patterns
+        const patterns = this.detectFlakinessPatterns(data);
+
+        // Calculate trend (improving/worsening)
+        const trend = this.calculateFlakinessTrend(data.executions);
+
+        // Calculate confidence level based on number of executions
+        const confidenceLevel = this.calculateConfidenceLevel(data.totalRuns);
+
+        return {
+          identifier,
+          name: data.name,
+          suite: data.suite,
+          totalRuns: data.totalRuns,
+          failureRate,
+          flakinessScore,
+          patterns,
+          trend,
+          confidenceLevel,
+          recentExecutions: data.executions.slice(0, 5),
+          environmentCorrelations: this.analyzeEnvironmentCorrelations(
+            data.environmentData,
+          ),
+        };
+      })
+      .filter(Boolean);
+  }
+
+  /**
+   * Detects patterns in flaky test behavior
+   * @param testData - Test history data
+   * @returns Object containing detected patterns
+   * @private
+   */
+  private detectFlakinessPatterns(testData: any) {
+    const patterns = {
+      isRandom: false,
+      isAlternating: false,
+      isTimeBased: false,
+      isEnvironmentSpecific: false,
+      details: '',
+    };
+
+    const statusSequence = testData.statusSequence;
+    let alternatingCount = 0;
+    for (let i = 1; i < statusSequence.length; i++) {
+      if (statusSequence[i] !== statusSequence[i - 1]) {
+        alternatingCount++;
+      }
+    }
+
+    if (alternatingCount > statusSequence.length * 0.7) {
+      patterns.isAlternating = true;
+      patterns.details += 'Shows alternating pass/fail pattern. ';
+    }
+
+    const timeBasedFailures = this.detectTimeBasedPatterns(testData.executions);
+    if (timeBasedFailures) {
+      patterns.isTimeBased = true;
+      patterns.details += timeBasedFailures;
+    }
+
+    const environmentCorrelations = this.analyzeEnvironmentCorrelations(
+      testData.environmentData,
+    );
+    const significantCorrelations = Object.entries(
+      environmentCorrelations,
+    ).filter(([_, correlation]) => Math.abs(correlation as number) > 0.5);
+
+    if (significantCorrelations.length > 0) {
+      patterns.isEnvironmentSpecific = true;
+      patterns.details += 'Failures correlate with specific environments: ';
+      patterns.details += significantCorrelations
+        .map(([factor, value]) => `${factor} (${(value as number).toFixed(2)})`)
+        .join(', ');
+      patterns.details += '. ';
+    }
+
+    // If no specific pattern is detected, mark as random
+    if (
+      !patterns.isAlternating &&
+      !patterns.isTimeBased &&
+      !patterns.isEnvironmentSpecific
+    ) {
+      patterns.isRandom = true;
+      patterns.details += 'No clear pattern detected, appears to be random. ';
+    }
+
+    return patterns;
+  }
+
+  /**
+   * Detects time-based patterns in test failures
+   * @param executions - Array of test executions
+   * @returns Description of time-based pattern or null if none detected
+   * @private
+   */
+  private detectTimeBasedPatterns(executions: any[]) {
+    // Group failures by day of week
+    const dayFailures = [0, 0, 0, 0, 0, 0, 0];
+    const dayTotals = [0, 0, 0, 0, 0, 0, 0];
+
+    // Group failures by hour of day
+    const hourFailures = Array(24).fill(0);
+    const hourTotals = Array(24).fill(0);
+
+    executions.forEach((exec) => {
+      const date = new Date(exec.date);
+      const day = date.getDay();
+      const hour = date.getHours();
+
+      dayTotals[day]++;
+      hourTotals[hour]++;
+
+      if (exec.status === 'failed') {
+        dayFailures[day]++;
+        hourFailures[hour]++;
+      }
+    });
+
+    // Calculate failure rates
+    const dayFailureRates = dayTotals.map((total, i) =>
+      total > 0 ? (dayFailures[i] / total) * 100 : 0,
+    );
+
+    const hourFailureRates = hourTotals.map((total, i) =>
+      total > 0 ? (hourFailures[i] / total) * 100 : 0,
+    );
+
+    // Check for significant variations
+    const dayAvg = dayFailureRates.reduce((sum, rate) => sum + rate, 0) / 7;
+    const hourAvg = hourFailureRates.reduce((sum, rate) => sum + rate, 0) / 24;
+
+    let pattern = '';
+
+    // Check for day of week patterns
+    const highFailureDays = dayFailureRates
+      .map((rate, day) => ({ day, rate }))
+      .filter(({ rate }) => rate > dayAvg * 1.5 && rate > 30);
+
+    if (highFailureDays.length > 0) {
+      const dayNames = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ];
+      pattern +=
+        'Fails more often on: ' +
+        highFailureDays
+          .map(({ day, rate }) => `${dayNames[day]} (${rate.toFixed(0)}%)`)
+          .join(', ') +
+        '. ';
+    }
+
+    // Check for time of day patterns
+    const highFailureHours = hourFailureRates
+      .map((rate, hour) => ({ hour, rate }))
+      .filter(({ rate }) => rate > hourAvg * 1.5 && rate > 30);
+
+    if (highFailureHours.length > 0) {
+      pattern +=
+        'Fails more often during hours: ' +
+        highFailureHours
+          .map(({ hour, rate }) => `${hour}:00 (${rate.toFixed(0)}%)`)
+          .join(', ') +
+        '. ';
+    }
+
+    return pattern || null;
+  }
+
+  /**
+   * Analyzes correlations between test failures and environment factors
+   * @param environmentData - Array of test execution environment data
+   * @returns Object mapping environment factors to correlation coefficients
+   * @private
+   */
+  private analyzeEnvironmentCorrelations(environmentData: any[]) {
+    const correlations: Record<string, number> = {};
+
+    // Skip if not enough data
+    if (environmentData.length < 5) {
+      return correlations;
+    }
+
+    // Analyze each environment factor
+    const factors = ['browser', 'framework', 'platform', 'branch'];
+
+    factors.forEach((factor) => {
+      // Get unique values for this factor
+      const uniqueValues = [
+        ...new Set(environmentData.map((data) => data[factor])),
+      ];
+
+      // Skip if only one value exists
+      if (uniqueValues.length <= 1) {
+        return;
+      }
+
+      // Calculate correlation for each value
+      uniqueValues.forEach((value) => {
+        const execsWithValue = environmentData.filter(
+          (data) => data[factor] === value,
+        );
+        const failuresWithValue = execsWithValue.filter(
+          (data) => data.status === 'failed',
+        ).length;
+        const failureRateWithValue =
+          execsWithValue.length > 0
+            ? (failuresWithValue / execsWithValue.length) * 100
+            : 0;
+
+        const execsWithoutValue = environmentData.filter(
+          (data) => data[factor] !== value,
+        );
+        const failuresWithoutValue = execsWithoutValue.filter(
+          (data) => data.status === 'failed',
+        ).length;
+        const failureRateWithoutValue =
+          execsWithoutValue.length > 0
+            ? (failuresWithoutValue / execsWithoutValue.length) * 100
+            : 0;
+
+        // Calculate correlation coefficient (simplified as difference in failure rates)
+        const correlation = failureRateWithValue - failureRateWithoutValue;
+
+        // Only include significant correlations
+        if (Math.abs(correlation) > 20 && execsWithValue.length >= 3) {
+          correlations[`${factor}:${value}`] = correlation;
+        }
+      });
+    });
+
+    return correlations;
+  }
+
+  /**
+   * Calculates the trend of flakiness (improving or worsening)
+   * @param executions - Array of test executions
+   * @returns Object containing trend direction and rate
+   * @private
+   */
+  private calculateFlakinessTrend(executions: any[]) {
+    // Need at least 6 executions to calculate a meaningful trend
+    if (executions.length < 6) {
+      return { direction: 'stable', rate: 0 };
+    }
+
+    // Sort executions by date (oldest first)
+    const sortedExecutions = [...executions].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+
+    // Split into first half and second half
+    const midpoint = Math.floor(sortedExecutions.length / 2);
+    const firstHalf = sortedExecutions.slice(0, midpoint);
+    const secondHalf = sortedExecutions.slice(midpoint);
+
+    // Calculate status changes in each half
+    const firstHalfChanges = this.countStatusChanges(firstHalf);
+    const secondHalfChanges = this.countStatusChanges(secondHalf);
+
+    // Calculate change rates
+    const firstHalfRate = firstHalfChanges / (firstHalf.length - 1);
+    const secondHalfRate = secondHalfChanges / (secondHalf.length - 1);
+
+    // Calculate trend
+    const trendRate = ((secondHalfRate - firstHalfRate) / firstHalfRate) * 100;
+
+    let direction = 'stable';
+    if (trendRate > 10) {
+      direction = 'worsening';
+    } else if (trendRate < -10) {
+      direction = 'improving';
+    }
+
+    return { direction, rate: Math.abs(trendRate) };
+  }
+
+  /**
+   * Counts status changes in a sequence of executions
+   * @param executions - Array of test executions
+   * @returns Number of status changes
+   * @private
+   */
+  private countStatusChanges(executions: any[]) {
+    let changes = 0;
+    for (let i = 1; i < executions.length; i++) {
+      if (executions[i].status !== executions[i - 1].status) {
+        changes++;
+      }
+    }
+    return changes;
+  }
+
+  /**
+   * Calculates confidence level based on number of executions
+   * @param executionCount - Number of test executions
+   * @returns Confidence level as a percentage
+   * @private
+   */
+  private calculateConfidenceLevel(executionCount: number) {
+    // Simple model: confidence increases with more executions but plateaus
+    if (executionCount < 5) {
+      return 20; // Low confidence with few executions
+    } else if (executionCount < 10) {
+      return 40 + (executionCount - 5) * 6; // 40-70% for 5-9 executions
+    } else if (executionCount < 20) {
+      return 70 + (executionCount - 10) * 2; // 70-90% for 10-19 executions
+    } else {
+      return 90 + Math.min(executionCount - 20, 10) * 1; // 90-100% for 20+ executions
+    }
+  }
+
+  /**
+   * Calculates impact scores for flaky tests
+   * @param flakyTests - Array of flaky test objects
+   * @param allExecutions - Array of all test executions
+   * @returns Array of flaky tests with impact scores
+   * @private
+   */
+  private calculateImpactScores(flakyTests: any[], allExecutions: any[]) {
+    // Group executions by test run
+    const testRunMap = allExecutions.reduce((acc, exec) => {
+      const runId = exec.testRunId;
+      if (!acc[runId]) {
+        acc[runId] = [];
+      }
+      acc[runId].push(exec);
+      return acc;
+    }, {});
+
+    // Calculate total test runs and failed runs
+    const totalRuns = Object.keys(testRunMap).length;
+
+    return flakyTests.map((test) => {
+      // Count runs where this test failed
+      const runsWithThisTestFailing = Object.values(testRunMap).filter(
+        (execs) =>
+          Array.isArray(execs) &&
+          execs.some(
+            (exec) =>
+              exec.identifier === test.identifier && exec.status === 'failed',
+          ),
+      ).length;
+
+      // Calculate percentage of runs affected by this test
+      const impactPercentage = (runsWithThisTestFailing / totalRuns) * 100;
+
+      // Calculate weighted impact score (combines flakiness and impact)
+      const impactScore = test.flakinessScore * 0.6 + impactPercentage * 0.4;
+
+      return {
+        ...test,
+        impact: {
+          runsAffected: runsWithThisTestFailing,
+          totalRuns,
+          percentage: impactPercentage,
+          score: impactScore,
+        },
+      };
+    });
+  }
+
+  /**
+   * Sorts flaky tests based on specified metric
+   * @param tests - Array of flaky test objects
+   * @param sortBy - Metric to sort by
+   * @returns Sorted array of flaky tests
+   * @private
+   */
+  private sortFlakyTests(
+    tests: any[],
+    sortBy: 'flakinessScore' | 'impact' | 'failureRate',
+  ) {
+    return [...tests].sort((a, b) => {
+      if (sortBy === 'impact') {
+        return b.impact.score - a.impact.score;
+      } else if (sortBy === 'failureRate') {
+        return b.failureRate - a.failureRate;
+      } else {
+        return b.flakinessScore - a.flakinessScore;
+      }
+    });
+  }
+
+  /**
+   * Retrieves historical timeline of test flakiness evolution
+   * @param organizationId - The ID of the organization
+   * @param options - Timeline options including test identifier, date range, and grouping
+   * @returns Timeline data showing flakiness evolution over time
+   */
+  async getFlakyTestsTimeline(
+    organizationId: string,
+    options: {
+      identifier?: string;
+      startDate?: string;
+      endDate?: string;
+      groupBy: 'day' | 'week' | 'month';
+      aggregation: 'count' | 'percentage';
+    },
+  ) {
+    const { identifier, startDate, endDate, groupBy, aggregation } = options;
+
+    // Fetch test executions
+    const testExecutions = await this.prisma.testExecution.findMany({
+      where: {
+        ...(identifier ? { identifier } : {}),
+        testRun: {
+          organizationId,
+          ...(startDate || endDate
+            ? {
+                createdAt: {
+                  ...(startDate && { gte: new Date(startDate) }),
+                  ...(endDate && { lte: new Date(endDate) }),
+                },
+              }
+            : {}),
+        },
+      },
+      include: {
+        testRun: {
+          select: {
+            createdAt: true,
+          },
+        },
+      },
+      orderBy: {
+        testRun: {
+          createdAt: 'asc',
+        },
+      },
+    });
+
+    // If no executions, return empty result
+    if (testExecutions.length === 0) {
+      return {
+        timeline: [],
+        summary: {
+          totalTests: 0,
+          totalFlakyTests: 0,
+          averageFlakinessScore: 0,
+        },
+      };
+    }
+
+    // Generate timeline data
+    const timeline = this.generateFlakinessTimeline(
+      testExecutions,
+      groupBy,
+      aggregation,
+      identifier,
+    );
+
+    // Calculate summary statistics
+    const summary = this.calculateFlakinessTimelineSummary(timeline);
+
+    return {
+      timeline,
+      summary,
+    };
+  }
+
+  /**
+   * Generates timeline data for flakiness evolution
+   * @param testExecutions - Array of test execution objects
+   * @param groupBy - Time grouping (day, week, month)
+   * @param aggregation - How to aggregate data (count, percentage)
+   * @param identifier - Optional test identifier to focus on
+   * @returns Array of timeline entries with flakiness metrics
+   * @private
+   */
+  private generateFlakinessTimeline(
+    testExecutions: any[],
+    groupBy: 'day' | 'week' | 'month',
+    aggregation: 'count' | 'percentage',
+    identifier?: string,
+  ) {
+    // Group executions by time period
+    const groupedByTime = testExecutions.reduce((acc, exec) => {
+      const date = this.formatDate(exec.testRun.createdAt, groupBy);
+
+      if (!acc[date]) {
+        acc[date] = {
+          date,
+          totalTests: 0,
+          flakyTests: 0,
+          statusChanges: 0,
+          executions: {},
+        };
+      }
+
+      const period = acc[date];
+
+      // Track executions by test identifier
+      if (!period.executions[exec.identifier]) {
+        period.executions[exec.identifier] = {
+          statuses: [],
+          statusChanges: 0,
+          lastStatus: null,
+        };
+        period.totalTests++;
+      }
+
+      const testData = period.executions[exec.identifier];
+      testData.statuses.push(exec.status);
+
+      // Count status changes
+      if (testData.lastStatus && testData.lastStatus !== exec.status) {
+        testData.statusChanges++;
+        period.statusChanges++;
+      }
+      testData.lastStatus = exec.status;
+
+      return acc;
+    }, {});
+
+    // Process each time period to calculate flakiness
+    return Object.values(groupedByTime)
+      .map((period: any) => {
+        // For each test in this period, determine if it's flaky
+        Object.values(period.executions).forEach((test: any) => {
+          if (test.statusChanges > 0) {
+            period.flakyTests++;
+          }
+        });
+
+        // Calculate metrics based on aggregation type
+        const result: any = {
+          date: period.date,
+          totalTests: period.totalTests,
+          flakyTests: period.flakyTests,
+          statusChanges: period.statusChanges,
+        };
+
+        if (aggregation === 'percentage') {
+          result.flakinessRate =
+            period.totalTests > 0
+              ? (period.flakyTests / period.totalTests) * 100
+              : 0;
+          result.averageStatusChangeRate =
+            period.totalTests > 0
+              ? period.statusChanges / period.totalTests
+              : 0;
+        }
+
+        return result;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }
+
+  /**
+   * Calculates summary statistics for flakiness timeline
+   * @param timeline - Array of timeline entries
+   * @returns Summary statistics
+   * @private
+   */
+  private calculateFlakinessTimelineSummary(timeline: any[]) {
+    if (timeline.length === 0) {
+      return {
+        totalTests: 0,
+        totalFlakyTests: 0,
+        averageFlakinessScore: 0,
+      };
+    }
+
+    // Calculate averages across all time periods
+    const totalTests = Math.max(...timeline.map((t) => t.totalTests));
+    const totalFlakyTests = Math.max(...timeline.map((t) => t.flakyTests));
+
+    // Calculate average flakiness rate
+    const totalFlakinessRate = timeline.reduce(
+      (sum, t) => sum + (t.flakinessRate || 0),
+      0,
+    );
+    const averageFlakinessScore = totalFlakinessRate / timeline.length;
+
+    return {
+      totalTests,
+      totalFlakyTests,
+      averageFlakinessScore,
+    };
+  }
 }

@@ -14,6 +14,8 @@ describe('TestAnalyticsController (e2e)', () => {
     getTestTrends: jest.fn(),
     getDetailedTrends: jest.fn(),
     getFlakyTests: jest.fn(),
+    getAdvancedFlakyTests: jest.fn(),
+    getFlakyTestsTimeline: jest.fn(),
   };
 
   // A fake guard that attaches an organizationId to the request.
@@ -52,7 +54,7 @@ describe('TestAnalyticsController (e2e)', () => {
 
   afterAll(async () => {
     await app.close();
-    console.error = originalConsoleError; // restore console.error
+    console.error = originalConsoleError;
   });
 
   // --- Overview Endpoint Tests ---
@@ -344,6 +346,157 @@ describe('TestAnalyticsController (e2e)', () => {
         .get('/test-analytics/flaky-tests')
         .expect(HttpStatus.INTERNAL_SERVER_ERROR);
       expect(res.body.message).toEqual('Internal server error');
+    });
+  });
+
+  describe('GET /test-analytics/flaky-tests/advanced', () => {
+    it('should return advanced flaky tests analysis', async () => {
+      const mockAdvancedFlaky = [
+        {
+          identifier: 'test1',
+          failureRate: 50,
+          flakinessScore: 30,
+          patterns: {
+            isRandom: false,
+            isAlternating: true,
+            isTimeBased: false,
+            isEnvironmentSpecific: false,
+            details: 'Shows alternating pass/fail pattern.',
+          },
+          trend: { direction: 'improving', rate: 15 },
+          confidenceLevel: 75,
+          impact: {
+            runsAffected: 5,
+            totalRuns: 10,
+            percentage: 50,
+            score: 38,
+          },
+        },
+      ];
+
+      mockTestAnalyticsService.getAdvancedFlakyTests.mockResolvedValueOnce(
+        mockAdvancedFlaky,
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/test-analytics/flaky-tests/advanced')
+        .query({
+          startDate: '2023-01-01',
+          endDate: '2023-01-31',
+          minFlakinessScore: 10,
+          minExecutions: 5,
+          sortBy: 'impact',
+        })
+        .expect(200);
+
+      expect(response.body).toEqual(mockAdvancedFlaky);
+      expect(
+        mockTestAnalyticsService.getAdvancedFlakyTests,
+      ).toHaveBeenCalledWith('org-1', {
+        startDate: '2023-01-01',
+        endDate: '2023-01-31',
+        minFlakinessScore: '10',
+        minExecutions: '5',
+        sortBy: 'impact',
+        timeWindow: undefined,
+      });
+    });
+  });
+
+  describe('GET /test-analytics/flaky-tests/timeline', () => {
+    it('should return flaky tests timeline', async () => {
+      const mockTimeline = {
+        timeline: [
+          {
+            date: '2023-01-01',
+            totalTests: 10,
+            flakyTests: 2,
+            statusChanges: 5,
+            flakinessRate: 20,
+            averageStatusChangeRate: 0.5,
+          },
+          {
+            date: '2023-01-08',
+            totalTests: 12,
+            flakyTests: 3,
+            statusChanges: 7,
+            flakinessRate: 25,
+            averageStatusChangeRate: 0.58,
+          },
+        ],
+        summary: {
+          totalTests: 12,
+          totalFlakyTests: 3,
+          averageFlakinessScore: 22.5,
+        },
+      };
+
+      mockTestAnalyticsService.getFlakyTestsTimeline.mockResolvedValueOnce(
+        mockTimeline,
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/test-analytics/flaky-tests/timeline')
+        .query({
+          startDate: '2023-01-01',
+          endDate: '2023-01-31',
+          groupBy: 'week',
+          aggregation: 'percentage',
+        })
+        .expect(200);
+
+      expect(response.body).toEqual(mockTimeline);
+      expect(
+        mockTestAnalyticsService.getFlakyTestsTimeline,
+      ).toHaveBeenCalledWith('org-1', {
+        identifier: undefined,
+        startDate: '2023-01-01',
+        endDate: '2023-01-31',
+        groupBy: 'week',
+        aggregation: 'percentage',
+      });
+    });
+
+    it('should handle specific test identifier', async () => {
+      const mockTimeline = {
+        timeline: [
+          {
+            date: '2023-01-01',
+            totalTests: 1,
+            flakyTests: 1,
+            statusChanges: 3,
+            flakinessRate: 100,
+            averageStatusChangeRate: 3,
+          },
+        ],
+        summary: {
+          totalTests: 1,
+          totalFlakyTests: 1,
+          averageFlakinessScore: 100,
+        },
+      };
+
+      mockTestAnalyticsService.getFlakyTestsTimeline.mockResolvedValueOnce(
+        mockTimeline,
+      );
+
+      const response = await request(app.getHttpServer())
+        .get('/test-analytics/flaky-tests/timeline')
+        .query({
+          identifier: 'test1',
+          groupBy: 'week',
+        })
+        .expect(200);
+
+      expect(
+        mockTestAnalyticsService.getFlakyTestsTimeline,
+      ).toHaveBeenCalledWith('org-1', {
+        identifier: 'test1',
+        startDate: undefined,
+        endDate: undefined,
+        groupBy: 'week',
+        aggregation: 'percentage',
+      });
     });
   });
 });
